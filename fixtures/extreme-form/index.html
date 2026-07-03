@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StoreForm — Extreme Test Form (self-heal gauntlet)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#111827; --muted:#6b7280; --line:#e5e7eb;
+    --brand:#0f7391; --brand-ink:#fff; --ok:#137a4a; --warn:#b45309; --err:#b91c1c;
+    --layer-role:#1d4ed8; --layer-text:#7c3aed; --layer-vision:#be123c;
+    --radius:10px; --gap:16px;
+    font-synthesis-weight:none;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0f14; --panel:#131a22; --ink:#e6edf3; --muted:#9aa7b4; --line:#26313c;
+    --brand:#3ba7c4; --ok:#4ade80; --warn:#fbbf24; --err:#f87171;
+    --layer-role:#93c5fd; --layer-text:#c4b5fd; --layer-vision:#fda4af;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  header.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line);
+    padding:14px 20px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  header.top h1{font-size:17px;margin:0;letter-spacing:-.01em}
+  header.top .sub{color:var(--muted);font-size:12.5px}
+  main{max-width:960px;margin:0 auto;padding:20px 20px 120px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 18px 20px;margin:18px 0}
+  section > h2{font-size:14px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  section > .desc{font-size:13px;color:var(--muted);margin:0 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--gap)}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field > label,.field > .lab{font-size:12.5px;font-weight:600}
+  .hint{font-size:11.5px;color:var(--muted)}
+  input[type=text],input[type=email],input[type=url],input[type=tel],input[type=password],
+  input[type=number],input[type=search],input[type=date],input[type=time],input[type=datetime-local],
+  input[type=month],input[type=week],select,textarea{
+    font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    padding:9px 10px;width:100%}
+  textarea{min-height:72px;resize:vertical}
+  input:focus,select:focus,textarea:focus,button:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--brand);outline-offset:1px}
+  input[aria-invalid="true"]{border-color:var(--err)}
+  .errmsg{color:var(--err);font-size:11.5px;min-height:0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel);color:var(--ink);padding:9px 14px;transition:transform .05s,filter .12s}
+  button:hover{filter:brightness(1.05)}
+  button:active{transform:translateY(1px)}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .btn-primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+  .btn-danger{background:var(--err);border-color:var(--err);color:#fff}
+  .btn-ghost{background:transparent}
+  .btn-link{background:none;border:none;color:var(--brand);text-decoration:underline;padding:4px}
+  .icon-btn{width:38px;height:38px;display:grid;place-items:center;padding:0}
+  .split{display:inline-flex}
+  .split > button:first-child{border-top-right-radius:0;border-bottom-right-radius:0}
+  .split > button:last-child{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-1px;padding:9px 8px}
+  .switch{position:relative;width:44px;height:26px;display:inline-block}
+  .switch input{opacity:0;width:0;height:0}
+  .switch .track{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.15s}
+  .switch .track::before{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;
+    background:#fff;border-radius:50%;transition:.15s}
+  .switch input:checked + .track{background:var(--brand)}
+  .switch input:checked + .track::before{transform:translateX(18px)}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:none;border-radius:0;background:transparent}
+  .seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+  .cardradio{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;display:block}
+  .cardradio input{margin-right:8px}
+  .cardradio:has(input:checked){border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);
+    border-radius:99px;padding:3px 10px;font-size:12.5px}
+  .chip button{border:none;background:none;padding:0;color:var(--muted);cursor:pointer}
+  .combobox{position:relative}
+  .combobox input{width:100%}
+  .listbox{position:absolute;z-index:10;top:100%;left:0;right:0;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;margin-top:4px;max-height:200px;overflow:auto;display:none}
+  .listbox[data-open="true"]{display:block}
+  .listbox [role=option]{padding:8px 10px;cursor:pointer}
+  .listbox [role=option][aria-selected="true"],.listbox [role=option].active{background:var(--bg)}
+  .dropzone{border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--muted)}
+  .dropzone.drag{border-color:var(--brand);color:var(--brand)}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .tabs [role=tab]{padding:8px 12px;border:none;background:none;border-bottom:2px solid transparent}
+  .tabs [role=tab][aria-selected="true"]{border-bottom-color:var(--brand);color:var(--brand);font-weight:600}
+  [role=tabpanel][hidden]{display:none}
+  .acc-head{width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;
+    background:var(--bg)}
+  .acc-body[hidden]{display:none}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;place-items:center;z-index:50;padding:20px}
+  .overlay[data-open="true"]{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:520px;width:100%;
+    padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal h3{margin:0 0 8px}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(420px,90vw);background:var(--panel);
+    border-left:1px solid var(--line);transform:translateX(100%);transition:.2s;z-index:60;padding:22px}
+  .drawer[data-open="true"]{transform:none}
+  .popover{position:relative;display:inline-block}
+  .popover .pop{position:absolute;top:100%;left:0;margin-top:6px;background:var(--panel);border:1px solid var(--line);
+    border-radius:8px;padding:10px 12px;min-width:180px;display:none;z-index:15;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+  .popover .pop[data-open="true"]{display:block}
+  .tip{position:relative;border-bottom:1px dotted var(--muted);cursor:help}
+  .tip::after{content:attr(data-tip);position:absolute;left:0;bottom:130%;background:var(--ink);color:var(--bg);
+    padding:5px 8px;border-radius:6px;font-size:11.5px;white-space:nowrap;opacity:0;pointer-events:none;transition:.12s}
+  .tip:hover::after,.tip:focus::after{opacity:1}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);
+    color:var(--bg);padding:11px 16px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:80}
+  .toast[data-open="true"]{opacity:1;transform:translateX(-50%)}
+  .wiz-steps{display:flex;gap:8px;margin-bottom:14px;font-size:12px;color:var(--muted)}
+  .wiz-steps b{color:var(--brand)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0}
+  .gauntlet{border-color:var(--layer-vision)}
+  .gauntlet > h2{color:var(--layer-vision)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot.role{background:var(--layer-role)} .dot.text{background:var(--layer-text)} .dot.vision{background:var(--layer-vision)}
+  .tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;color:#fff;vertical-align:middle}
+  .tag.role{background:var(--layer-role)} .tag.text{background:var(--layer-text)} .tag.vision{background:var(--layer-vision)}
+  footer.bar{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);
+    padding:12px 20px;display:flex;gap:10px;justify-content:flex-end;z-index:30}
+  code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>StoreForm — Extreme Test Form <span class="sub">· self-heal gauntlet</span></h1>
+    <div class="sub">Fixture for F001.11. Zone A = rene <code>data-testid</code> (dagens pipeline). Zone B = ingen/ustabile anchors → tvinger role/label → tekst → vision.</div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="dot role"></i> Lag 1: role/label</span>
+      <span><i class="dot text"></i> Lag 2: synlig tekst</span>
+      <span><i class="dot vision"></i> Lag 3: vision-only</span>
+    </div>
+  </div>
+  <div class="row">
+    <button type="button" class="btn-ghost" data-testid="toolbar-theme-toggle" onclick="toggleTheme()">🌓 Tema</button>
+    <button type="button" class="btn-ghost" data-testid="toolbar-highlight-testids" onclick="toggleHi()">🔎 Vis testids</button>
+  </div>
+</header>
+
+<main>
+<form id="extreme" novalidate>
+
+<!-- ============ ZONE A — HAPPY PATH (clean data-testid) ============ -->
+
+<section data-testid="section-buttons">
+  <h2>1 · Knapper — alle varianter</h2>
+  <p class="desc">submit · reset · plain · primary · danger · ghost · link-as-button · icon-only · split · toggle · disabled · loading</p>
+  <div class="row">
+    <button type="submit" class="btn-primary" data-testid="btn-submit">Send til review</button>
+    <button type="reset" data-testid="btn-reset">Nulstil</button>
+    <button type="button" data-testid="btn-plain">Neutral</button>
+    <button type="button" class="btn-danger" data-testid="btn-danger">Slet udkast</button>
+    <button type="button" class="btn-ghost" data-testid="btn-ghost">Ghost</button>
+    <button type="button" class="btn-link" data-testid="btn-link">Læs mere</button>
+    <button type="button" class="icon-btn" data-testid="btn-icon" aria-label="Tilføj felt">＋</button>
+    <span class="split">
+      <button type="button" data-testid="btn-split-main">Gem</button>
+      <button type="button" data-testid="btn-split-more" aria-label="Flere gem-valg">▾</button>
+    </span>
+    <button type="button" aria-pressed="false" data-testid="btn-toggle" onclick="tgl(this)">Kladde-tilstand: fra</button>
+    <button type="button" disabled data-testid="btn-disabled">Deaktiveret</button>
+    <button type="button" data-testid="btn-loading" onclick="loadBtn(this)">Kør validering</button>
+    <a href="#" role="button" class="btn-ghost" data-testid="link-as-button" onclick="return false">Link som knap (role=button)</a>
+  </div>
+</section>
+
+<section data-testid="section-text">
+  <h2>2 · Tekst-input — alle typer</h2>
+  <div class="grid">
+    <div class="field"><label for="t-text">Titel</label><input id="t-text" type="text" data-testid="text-title" placeholder="App-navn" required></div>
+    <div class="field"><label for="t-email">E-mail</label><input id="t-email" type="email" data-testid="text-email" placeholder="you@domain.com"><span class="errmsg" data-testid="err-email"></span></div>
+    <div class="field"><label for="t-url">Support-URL</label><input id="t-url" type="url" data-testid="text-url" placeholder="https://"></div>
+    <div class="field"><label for="t-tel">Telefon</label><input id="t-tel" type="tel" data-testid="text-tel" placeholder="+45 …"></div>
+    <div class="field"><label for="t-pass">Adgangskode</label><input id="t-pass" type="password" data-testid="text-password"></div>
+    <div class="field"><label for="t-num">Build-nummer</label><input id="t-num" type="number" data-testid="text-number" min="1" step="1"></div>
+    <div class="field"><label for="t-search">Søg</label><input id="t-search" type="search" data-testid="text-search" placeholder="Søg i katalog"></div>
+    <div class="field"><label for="t-mask">Kort (masked)</label><input id="t-mask" type="text" inputmode="numeric" data-testid="text-masked" placeholder="1234 5678 9012 3456" oninput="mask(this)"></div>
+    <div class="field"><label for="t-list">Kategori (datalist)</label>
+      <input id="t-list" list="cats" data-testid="text-datalist" placeholder="Vælg/skriv">
+      <datalist id="cats"><option value="Produktivitet"><option value="Spil"><option value="Sundhed"><option value="Finans"></datalist></div>
+    <div class="field"><span class="lab">Floating label</span>
+      <span style="position:relative"><input id="t-float" type="text" data-testid="text-floating" placeholder=" " style="padding-top:16px"><label for="t-float" class="hint" style="position:absolute;left:10px;top:6px">Undertitel</label></span></div>
+    <div class="field" style="grid-column:1/-1"><label for="t-area">Beskrivelse (textarea)</label><textarea id="t-area" data-testid="text-textarea" placeholder="Hvad er nyt i denne version…"></textarea></div>
+    <div class="field" style="grid-column:1/-1"><span class="lab">Rich (contenteditable)</span>
+      <div contenteditable="true" role="textbox" aria-label="Release notes rich" data-testid="text-contenteditable"
+        style="min-height:60px;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--bg)">Klik og rediger…</div></div>
+  </div>
+</section>
+
+<section data-testid="section-choice">
+  <h2>3 · Checkbokse & switches</h2>
+  <div class="grid">
+    <div class="field"><span class="lab">Enkelt</span>
+      <label class="row"><input type="checkbox" data-testid="check-terms"> Jeg accepterer vilkår</label></div>
+    <div class="field"><span class="lab">Gruppe</span>
+      <label class="row"><input type="checkbox" data-testid="check-plat-ios"> iOS</label>
+      <label class="row"><input type="checkbox" data-testid="check-plat-android"> Android</label>
+      <label class="row"><input type="checkbox" data-testid="check-plat-web"> Web</label></div>
+    <div class="field"><span class="lab">Indeterminate (parent)</span>
+      <label class="row"><input type="checkbox" data-testid="check-all" onchange="allChild(this)"> Alle regioner</label>
+      <label class="row" style="margin-left:18px"><input type="checkbox" class="reg" data-testid="check-reg-eu" onchange="syncAll()"> EU</label>
+      <label class="row" style="margin-left:18px"><input type="checkbox" class="reg" data-testid="check-reg-us" onchange="syncAll()"> US</label></div>
+    <div class="field"><span class="lab">Switch (role=switch)</span>
+      <label class="switch"><input type="checkbox" role="switch" data-testid="switch-auto-release"><span class="track"></span></label>
+      <span class="hint">Auto-udgivelse efter godkendelse</span></div>
+  </div>
+</section>
+
+<section data-testid="section-radio">
+  <h2>4 · Radio — group · segmented · card</h2>
+  <div class="grid">
+    <div class="field"><span class="lab">Klassisk gruppe</span>
+      <label class="row"><input type="radio" name="tier" value="free" data-testid="radio-tier-free"> Gratis</label>
+      <label class="row"><input type="radio" name="tier" value="pro" data-testid="radio-tier-pro"> Pro</label>
+      <label class="row"><input type="radio" name="tier" value="ent" data-testid="radio-tier-ent"> Enterprise</label></div>
+    <div class="field"><span class="lab">Segmented control</span>
+      <div class="seg" role="radiogroup" aria-label="Miljø">
+        <button type="button" role="radio" aria-checked="true" data-testid="seg-env-prod" onclick="seg(this)">Prod</button>
+        <button type="button" role="radio" aria-checked="false" data-testid="seg-env-beta" onclick="seg(this)">Beta</button>
+        <button type="button" role="radio" aria-checked="false" data-testid="seg-env-alpha" onclick="seg(this)">Alpha</button></div></div>
+    <div class="field"><span class="lab">Card-radios</span>
+      <label class="cardradio"><input type="radio" name="plan" value="m" data-testid="radio-plan-monthly"> Månedlig</label>
+      <label class="cardradio"><input type="radio" name="plan" value="y" data-testid="radio-plan-yearly"> Årlig (spar 20%)</label></div>
+  </div>
+</section>
+
+<section data-testid="section-select">
+  <h2>5 · Selects · comboboxes · lookups · cascading</h2>
+  <div class="grid">
+    <div class="field"><label for="s-native">Land (native single)</label>
+      <select id="s-native" data-testid="select-country" onchange="cascade()">
+        <option value="">— vælg —</option><option>Danmark</option><option>Sverige</option><option>Tyskland</option></select></div>
+    <div class="field"><label for="s-multi">Sprog (native multi)</label>
+      <select id="s-multi" multiple size="4" data-testid="select-languages">
+        <option>da</option><option>en</option><option>de</option><option>sv</option><option>fr</option></select></div>
+    <div class="field"><label for="s-city">Region (cascading — afh. af land)</label>
+      <select id="s-city" data-testid="select-region" disabled><option>Vælg land først</option></select>
+      <span class="hint">Betinget felt: fyldes når land vælges</span></div>
+
+    <div class="field"><span class="lab" id="cb-lab">Tidszone (custom combobox)</span>
+      <div class="combobox">
+        <input role="combobox" aria-expanded="false" aria-controls="cb-list" aria-labelledby="cb-lab"
+          data-testid="combobox-timezone" placeholder="Skriv for at filtrere" oninput="cbFilter(this)" onclick="cbOpen(this)">
+        <div class="listbox" id="cb-list" role="listbox" data-testid="combobox-timezone-list">
+          <div role="option" data-testid="combobox-opt-cph">Europe/Copenhagen</div>
+          <div role="option" data-testid="combobox-opt-lon">Europe/London</div>
+          <div role="option" data-testid="combobox-opt-ny">America/New_York</div>
+          <div role="option" data-testid="combobox-opt-tok">Asia/Tokyo</div></div></div></div>
+
+    <div class="field"><span class="lab">By (async lookup / typeahead)</span>
+      <div class="combobox">
+        <input role="combobox" aria-expanded="false" aria-controls="lk-list" aria-label="By-opslag"
+          data-testid="lookup-city" placeholder="Min. 2 tegn → henter…" oninput="lookup(this)">
+        <div class="listbox" id="lk-list" role="listbox" data-testid="lookup-city-list"></div></div>
+      <span class="hint" data-testid="lookup-city-status">Simuleret netværks-opslag (async)</span></div>
+
+    <div class="field" style="grid-column:1/-1"><span class="lab">Tags (multi-select med chips)</span>
+      <div class="row" id="tagbox" data-testid="tags-selected"></div>
+      <input data-testid="tags-input" placeholder="Skriv tag + Enter" onkeydown="addTag(event,this)"></div>
+  </div>
+</section>
+
+<section data-testid="section-special">
+  <h2>6 · Dato/tid · range · color · file</h2>
+  <div class="grid">
+    <div class="field"><label for="d-date">Udgivelsesdato (native)</label><input id="d-date" type="date" data-testid="date-release"></div>
+    <div class="field"><label for="d-time">Tidspunkt</label><input id="d-time" type="time" data-testid="time-release"></div>
+    <div class="field"><label for="d-dt">Dato+tid</label><input id="d-dt" type="datetime-local" data-testid="datetime-release"></div>
+    <div class="field"><label for="d-month">Måned</label><input id="d-month" type="month" data-testid="month-release"></div>
+    <div class="field"><label for="d-week">Uge</label><input id="d-week" type="week" data-testid="week-release"></div>
+    <div class="field"><span class="lab">Custom date-picker (popover-kalender)</span>
+      <div class="popover"><button type="button" data-testid="datepicker-trigger" onclick="pop(this)">📅 <span data-testid="datepicker-value">Vælg dato</span></button>
+        <div class="pop" role="dialog" aria-label="Kalender" data-testid="datepicker-panel">
+          <div class="row" style="gap:4px" id="cal-days"></div></div></div></div>
+    <div class="field"><label for="r-range">Rollout %</label><input id="r-range" type="range" min="0" max="100" value="10" data-testid="range-rollout" oninput="document.getElementById('r-out').textContent=this.value+'%'"><span class="hint" id="r-out">10%</span></div>
+    <div class="field"><label for="c-color">Brand-farve</label><input id="c-color" type="color" data-testid="color-brand" value="#0f7391"></div>
+    <div class="field"><label for="f-one">Ikon (enkelt fil)</label><input id="f-one" type="file" accept="image/*" data-testid="file-icon"></div>
+    <div class="field"><label for="f-multi">Screenshots (flere)</label><input id="f-multi" type="file" accept="image/*" multiple data-testid="file-screenshots"></div>
+    <div class="field" style="grid-column:1/-1"><span class="lab">Drag-and-drop upload</span>
+      <div class="dropzone" data-testid="dropzone-assets" tabindex="0" role="button" aria-label="Slip filer her">
+        Træk filer hertil eller <button type="button" class="btn-link" data-testid="dropzone-browse" onclick="document.getElementById('f-multi').click()">gennemse</button>
+        <div class="hint" data-testid="dropzone-count">0 filer</div></div></div>
+  </div>
+</section>
+
+<section data-testid="section-overlays">
+  <h2>7 · Modaler & overlays</h2>
+  <p class="desc">&lt;dialog&gt; · custom modal · confirm · multi-step wizard (betinget branching) · nested · drawer · popover · tooltip · toast</p>
+  <div class="row">
+    <button type="button" data-testid="open-dialog-native" onclick="document.getElementById('nativeDlg').showModal()">Native &lt;dialog&gt;</button>
+    <button type="button" data-testid="open-modal-custom" onclick="ov('customModal',true)">Custom modal</button>
+    <button type="button" data-testid="open-modal-confirm" onclick="ov('confirmModal',true)">Bekræft-dialog</button>
+    <button type="button" class="btn-primary" data-testid="open-wizard" onclick="wizOpen()">Multi-step wizard</button>
+    <button type="button" data-testid="open-drawer" onclick="drw(true)">Åbn drawer</button>
+    <span class="popover"><button type="button" data-testid="open-popover" onclick="pop(this)">Popover ▾</button>
+      <div class="pop" data-testid="popover-panel">
+        <label class="row"><input type="checkbox" data-testid="popover-opt-a"> Valg A</label>
+        <label class="row"><input type="checkbox" data-testid="popover-opt-b"> Valg B</label></div></span>
+    <span class="tip" tabindex="0" data-tip="Jeg er en tooltip" data-testid="tooltip-trigger">Hover for tooltip</span>
+    <button type="button" data-testid="show-toast" onclick="toast('Gemt som kladde')">Vis toast</button>
+  </div>
+
+  <dialog id="nativeDlg" data-testid="dialog-native">
+    <form method="dialog"><h3>Native dialog</h3><p>Ægte <code>&lt;dialog&gt;</code>-element.</p>
+      <div class="field"><label for="dlg-in">Note</label><input id="dlg-in" type="text" data-testid="dialog-native-input"></div>
+      <div class="row" style="justify-content:flex-end;margin-top:12px">
+        <button value="cancel" data-testid="dialog-native-cancel">Annullér</button>
+        <button value="ok" class="btn-primary" data-testid="dialog-native-ok">OK</button></div></form></dialog>
+</section>
+
+<section data-testid="section-structural">
+  <h2>8 · Struktur — tabs · accordion · betinget/forsinket render</h2>
+  <div class="tabs" role="tablist" aria-label="Detaljer">
+    <button role="tab" aria-selected="true" aria-controls="tp1" data-testid="tab-general" onclick="tab(1)">Generelt</button>
+    <button role="tab" aria-selected="false" aria-controls="tp2" data-testid="tab-pricing" onclick="tab(2)">Pris</button>
+    <button role="tab" aria-selected="false" aria-controls="tp3" data-testid="tab-review" onclick="tab(3)">Review</button>
+  </div>
+  <div id="tp1" role="tabpanel" data-testid="tabpanel-general">
+    <div class="field"><label for="tp-name">Visningsnavn</label><input id="tp-name" type="text" data-testid="tab-general-name"></div></div>
+  <div id="tp2" role="tabpanel" data-testid="tabpanel-pricing" hidden>
+    <div class="field"><label for="tp-price">Pris (kr)</label><input id="tp-price" type="number" data-testid="tab-pricing-price"></div></div>
+  <div id="tp3" role="tabpanel" data-testid="tabpanel-review" hidden>
+    <label class="row"><input type="checkbox" data-testid="tab-review-confirm"> Jeg bekræfter metadata</label></div>
+
+  <div style="margin-top:16px">
+    <button type="button" class="acc-head" aria-expanded="false" data-testid="accordion-advanced" onclick="acc(this)">Avancerede indstillinger <span>▾</span></button>
+    <div class="acc-body" data-testid="accordion-advanced-body" hidden>
+      <div class="field" style="margin-top:10px"><label for="acc-flag">Feature-flag</label><input id="acc-flag" type="text" data-testid="accordion-flag"></div></div>
+  </div>
+
+  <div style="margin-top:16px">
+    <label class="row"><input type="checkbox" data-testid="cond-has-iap" onchange="cond(this)"> Appen har in-app-køb</label>
+    <div id="condBox" data-testid="cond-iap-box" hidden style="margin-top:8px">
+      <div class="field"><label for="cond-price">IAP-prisniveau</label><input id="cond-price" type="text" data-testid="cond-iap-price" placeholder="Vises kun når afkrydset (betinget felt)"></div></div>
+  </div>
+
+  <div style="margin-top:16px">
+    <button type="button" data-testid="load-async-field" onclick="asyncField(this)">Hent felt async (forsinket render)</button>
+    <div id="asyncBox" data-testid="async-field-box" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<!-- ============ ZONE B — SELF-HEAL GAUNTLET (no/unstable anchors) ============ -->
+
+<section class="gauntlet" data-testid="section-gauntlet">
+  <h2>9 · Self-heal-gauntlet — INGEN stabile testids</h2>
+  <p class="desc">Her SKAL motoren falde tilbage. Hvert felt er mærket med det lag der forventes at ramme det:
+     <span class="tag role">ROLE</span> getByRole/label · <span class="tag text">TEXT</span> synlig tekst · <span class="tag vision">VISION</span> kun visuelt.</p>
+  <div class="grid">
+
+    <!-- ROLE layer: accessible name via aria-label, but generated/unstable class + no testid -->
+    <div class="field"><span class="lab">App-navn <span class="tag role">ROLE</span></span>
+      <input type="text" class="_x9f2a3 css-1qk4z" aria-label="Application name" placeholder=""></div>
+
+    <!-- ROLE layer: label[for] association, no testid, obfuscated id -->
+    <div class="field"><label for="_g7h">Primær kategori <span class="tag role">ROLE</span></label>
+      <select id="_g7h" class="sc-bdVaJa kxLpQ"><option>Vælg…</option><option>Værktøjer</option><option>Livsstil</option></select></div>
+
+    <!-- TEXT layer: no label association at all — only nearby visible text -->
+    <div class="field"><div>Supportkontakt e-mail <span class="tag text">TEXT</span></div>
+      <input type="email" class="ipt _77a"></div>
+
+    <!-- TEXT layer: button identifiable only by its visible text, unstable class -->
+    <div class="field"><span class="lab">Handling (kun tekst) <span class="tag text">TEXT</span></span>
+      <button type="button" class="btn _z12">Send til gennemgang</button></div>
+
+    <!-- ROLE: switch with aria but no testid -->
+    <div class="field"><span class="lab">Auto-svar <span class="tag role">ROLE</span></span>
+      <div role="switch" aria-checked="false" tabindex="0" aria-label="Enable auto reply"
+        style="width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;cursor:pointer"
+        onclick="ariaSwitch(this)"><span style="position:absolute;left:3px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:.15s"></span></div></div>
+
+    <!-- VISION-ONLY: icon button, NO accessible name, NO testid, NO text — only a glyph -->
+    <div class="field"><span class="lab">Vision-only handling <span class="tag vision">VISION</span></span>
+      <div class="row"><button type="button" class="_ib" style="width:40px;height:40px;border-radius:8px">🗑️</button>
+        <span class="hint">Ingen aria-label, ingen tekst, ingen testid — kun ikonet. Kun vision-laget kan finde+forstå den.</span></div></div>
+
+    <!-- Placeholder-only field (bad but real) -->
+    <div class="field"><span class="lab">Placeholder-only <span class="tag text">TEXT</span></span>
+      <input type="text" class="_ph" placeholder="Kampagnekode"></div>
+  </div>
+
+  <div class="grid" style="margin-top:16px">
+    <!-- Shadow DOM host -->
+    <div class="field"><span class="lab">Shadow DOM-felt <span class="tag vision">VISION</span></span>
+      <sf-shadow-field></sf-shadow-field><span class="hint">Feltet lever i en shadow root (lukket for normal DOM-query)</span></div>
+
+    <!-- iframe-embedded field -->
+    <div class="field" style="grid-column:1/-1"><span class="lab">Iframe-indlejret felt <span class="tag vision">VISION</span></span>
+      <iframe title="Betalingsfelt" data-testid="iframe-note" style="width:100%;height:90px;border:1px solid var(--line);border-radius:8px"
+        srcdoc="&lt;body style='font-family:sans-serif;margin:10px'&gt;&lt;label&gt;Kortnote (i iframe)&lt;br&gt;&lt;input style='width:90%;padding:8px'&gt;&lt;/label&gt;&lt;/body&gt;"></iframe></div>
+
+    <!-- visually hidden but focusable -->
+    <div class="field"><span class="lab">Visually-hidden felt <span class="tag role">ROLE</span></span>
+      <input type="text" class="sr-only" aria-label="Hidden coupon field"><span class="hint">Findes i a11y-træet men er visuelt skjult — role-laget ser det, vision gør ikke.</span></div>
+  </div>
+</section>
+
+</form>
+</main>
+
+<!-- overlays (custom modal / confirm / wizard / drawer / toast) -->
+<div class="overlay" id="customModal" data-testid="modal-custom"><div class="modal" role="dialog" aria-modal="true" aria-label="Custom modal">
+  <h3>Custom modal</h3><p>Overlay-baseret modal (ikke native).</p>
+  <div class="field"><label for="cm-in">Feltet i modalen</label><input id="cm-in" type="text" data-testid="modal-custom-input"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:14px">
+    <button type="button" data-testid="modal-custom-cancel" onclick="ov('customModal',false)">Luk</button>
+    <button type="button" class="btn-primary" data-testid="modal-custom-save" onclick="ov('customModal',false)">Gem</button></div></div></div>
+
+<div class="overlay" id="confirmModal" data-testid="modal-confirm"><div class="modal" role="alertdialog" aria-modal="true" aria-label="Bekræft">
+  <h3>Er du sikker?</h3><p>Denne handling kan ikke fortrydes.</p>
+  <div class="row" style="justify-content:flex-end;margin-top:14px">
+    <button type="button" data-testid="modal-confirm-no" onclick="ov('confirmModal',false)">Nej</button>
+    <button type="button" class="btn-danger" data-testid="modal-confirm-yes" onclick="ov('confirmModal',false)">Ja, fortsæt</button></div></div></div>
+
+<div class="overlay" id="wizardModal" data-testid="modal-wizard"><div class="modal" role="dialog" aria-modal="true" aria-label="Wizard">
+  <div class="wiz-steps" data-testid="wizard-steps"><span data-s="1"><b>1 · Type</b></span><span data-s="2">2 · Detaljer</span><span data-s="3">3 · Bekræft</span></div>
+  <div data-step="1" data-testid="wizard-step-1">
+    <p>Vælg indsendelsestype (branching: "Ny app" viser ekstra trin):</p>
+    <label class="cardradio"><input type="radio" name="wtype" value="update" data-testid="wizard-type-update" checked> Opdatering</label>
+    <label class="cardradio"><input type="radio" name="wtype" value="new" data-testid="wizard-type-new"> Ny app (ekstra trin)</label></div>
+  <div data-step="2" data-testid="wizard-step-2" hidden>
+    <div class="field"><label for="wz-notes">Hvad er nyt</label><textarea id="wz-notes" data-testid="wizard-notes"></textarea></div>
+    <div class="field" id="wz-newonly" data-testid="wizard-newonly" hidden><label for="wz-bundle">Bundle-ID (kun ny app)</label><input id="wz-bundle" type="text" data-testid="wizard-bundle"></div></div>
+  <div data-step="3" data-testid="wizard-step-3" hidden><p>Bekræft og indsend.</p>
+    <label class="row"><input type="checkbox" data-testid="wizard-confirm"> Alt er korrekt</label></div>
+  <div class="row" style="justify-content:space-between;margin-top:16px">
+    <button type="button" data-testid="wizard-back" onclick="wizGo(-1)" disabled>Tilbage</button>
+    <div class="row">
+      <button type="button" data-testid="wizard-cancel" onclick="ov('wizardModal',false)">Annullér</button>
+      <button type="button" class="btn-primary" data-testid="wizard-next" onclick="wizGo(1)">Næste</button></div></div></div></div>
+
+<div class="drawer" id="drawer" data-testid="drawer"><div class="row" style="justify-content:space-between">
+  <h3 style="margin:0">Drawer-panel</h3><button type="button" class="icon-btn" aria-label="Luk drawer" data-testid="drawer-close" onclick="drw(false)">✕</button></div>
+  <div class="field" style="margin-top:12px"><label for="dw-in">Note i drawer</label><input id="dw-in" type="text" data-testid="drawer-input"></div>
+  <!-- nested modal trigger -->
+  <button type="button" style="margin-top:12px" data-testid="drawer-open-nested" onclick="ov('customModal',true)">Åbn nested modal herfra</button></div>
+
+<div class="toast" id="toast" role="status" data-testid="toast"></div>
+
+<footer class="bar">
+  <span style="margin-right:auto;color:var(--muted);font-size:12px" data-testid="form-status">Klar</span>
+  <button type="button" data-testid="footer-validate" onclick="validateForm()">Validér</button>
+  <button type="submit" form="extreme" class="btn-primary" data-testid="footer-submit">Send til review</button>
+</footer>
+
+<script>
+  function toggleTheme(){const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark';}
+  function toggleHi(){document.body.classList.toggle('hi');
+    document.querySelectorAll('[data-testid]').forEach(function(e){e.style.outline=document.body.classList.contains('hi')?'1px dashed var(--brand)':'';});}
+  function tgl(b){const on=b.getAttribute('aria-pressed')==='true';b.setAttribute('aria-pressed',String(!on));b.textContent='Kladde-tilstand: '+(!on?'til':'fra');}
+  function loadBtn(b){const t=b.textContent;b.disabled=true;b.textContent='Kører…';setTimeout(function(){b.disabled=false;b.textContent=t;toast('Validering færdig');},1200);}
+  function mask(i){let v=i.value.replace(/\D/g,'').slice(0,16);i.value=v.replace(/(.{4})/g,'$1 ').trim();}
+  function allChild(cb){document.querySelectorAll('.reg').forEach(function(c){c.checked=cb.checked;});cb.indeterminate=false;}
+  function syncAll(){const r=[].slice.call(document.querySelectorAll('.reg'));const n=r.filter(function(c){return c.checked;}).length;
+    const a=document.querySelector('[data-testid=check-all]');a.checked=n===r.length;a.indeterminate=n>0&&n<r.length;}
+  function seg(b){b.parentNode.querySelectorAll('[role=radio]').forEach(function(x){x.setAttribute('aria-checked','false');});b.setAttribute('aria-checked','true');}
+  function ariaSwitch(el){const on=el.getAttribute('aria-checked')==='true';el.setAttribute('aria-checked',String(!on));
+    el.style.background=!on?'var(--brand)':'var(--line)';el.firstElementChild.style.transform=!on?'translateX(18px)':'';}
+  function cbOpen(i){const l=i.parentNode.querySelector('.listbox');l.dataset.open='true';i.setAttribute('aria-expanded','true');}
+  function cbFilter(i){const l=i.parentNode.querySelector('.listbox');l.dataset.open='true';i.setAttribute('aria-expanded','true');
+    const q=i.value.toLowerCase();l.querySelectorAll('[role=option]').forEach(function(o){o.style.display=o.textContent.toLowerCase().includes(q)?'':'none';});}
+  document.addEventListener('click',function(e){document.querySelectorAll('.listbox[data-open=true]').forEach(function(l){
+    if(!l.parentNode.contains(e.target)){l.dataset.open='false';const inp=l.parentNode.querySelector('[role=combobox]');if(inp)inp.setAttribute('aria-expanded','false');}});
+    document.querySelectorAll('.pop[data-open=true]').forEach(function(p){if(!p.parentNode.contains(e.target))p.dataset.open='false';});});
+  document.querySelectorAll('.listbox [role=option]').forEach(function(o){o.addEventListener('click',function(){
+    const cb=o.closest('.combobox').querySelector('[role=combobox]');cb.value=o.textContent;o.closest('.listbox').dataset.open='false';cb.setAttribute('aria-expanded','false');});});
+  var CITIES=['Aalborg','Aarhus','København','Odense','Stockholm','Malmö','Berlin','Hamburg','München','London'];
+  function lookup(i){const l=document.getElementById('lk-list');const s=document.querySelector('[data-testid=lookup-city-status]');
+    if(i.value.length<2){l.dataset.open='false';s.textContent='Min. 2 tegn';return;}
+    s.textContent='Henter…';l.dataset.open='true';l.innerHTML='';
+    setTimeout(function(){const q=i.value.toLowerCase();const hits=CITIES.filter(function(c){return c.toLowerCase().includes(q);});
+      s.textContent=hits.length+' resultater';l.innerHTML=hits.map(function(c,n){return '<div role="option" data-testid="lookup-opt-'+n+'">'+c+'</div>';}).join('')||'<div role="option">Ingen</div>';
+      l.querySelectorAll('[role=option]').forEach(function(o){o.onclick=function(){i.value=o.textContent;l.dataset.open='false';};});},600);}
+  function addTag(e,i){if(e.key!=='Enter'||!i.value.trim())return;e.preventDefault();const box=document.getElementById('tagbox');
+    const v=i.value.trim();const c=document.createElement('span');c.className='chip';c.setAttribute('data-testid','tag-'+v.toLowerCase().replace(/\s+/g,'-'));
+    c.innerHTML=v+' <button type="button" data-testid="tag-remove-'+v.toLowerCase().replace(/\s+/g,'-')+'" aria-label="Fjern '+v+'">✕</button>';c.querySelector('button').onclick=function(){c.remove();};box.appendChild(c);i.value='';}
+  function cascade(){const c=document.querySelector('[data-testid=select-country]').value;const r=document.querySelector('[data-testid=select-region]');
+    const map={'Danmark':['Nordjylland','Midtjylland','Hovedstaden'],'Sverige':['Skåne','Stockholm'],'Tyskland':['Bayern','Berlin']};
+    if(!c){r.disabled=true;r.innerHTML='<option>Vælg land først</option>';return;}
+    r.disabled=false;r.innerHTML=map[c].map(function(x){return '<option>'+x+'</option>';}).join('');}
+  function pop(b){const p=b.parentNode.querySelector('.pop');p.dataset.open=p.dataset.open==='true'?'false':'true';}
+  (function cal(){const d=document.getElementById('cal-days');if(!d)return;for(var i=1;i<=28;i++){(function(n){var b=document.createElement('button');
+    b.type='button';b.textContent=n;b.style.cssText='width:30px;height:30px;padding:0';b.setAttribute('data-testid','cal-day-'+n);
+    b.onclick=function(){document.querySelector('[data-testid=datepicker-value]').textContent='2026-08-'+String(n).padStart(2,'0');
+      document.querySelector('[data-testid=datepicker-panel]').parentNode.querySelector('.pop').dataset.open='false';};d.appendChild(b);})(i);}})();
+  function ov(id,open){document.getElementById(id).dataset.open=open?'true':'false';}
+  function drw(open){document.getElementById('drawer').dataset.open=open?'true':'false';}
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.dataset.open='true';setTimeout(function(){t.dataset.open='false';},1800);}
+  function tab(n){[1,2,3].forEach(function(i){document.getElementById('tp'+i).hidden=i!==n;});
+    document.querySelectorAll('[role=tab]').forEach(function(t,i){t.setAttribute('aria-selected',String(i===n-1));});}
+  function acc(b){const open=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!open));
+    document.querySelector('[data-testid=accordion-advanced-body]').hidden=open;}
+  function cond(cb){document.getElementById('condBox').hidden=!cb.checked;}
+  function asyncField(b){const box=document.getElementById('asyncBox');b.disabled=true;b.textContent='Henter…';
+    setTimeout(function(){box.innerHTML='<div class="field"><label for="afx">Sent-renderet felt</label><input id="afx" type="text" data-testid="async-field-input" placeholder="Kom først efter 1.2s"></div>';
+      b.disabled=false;b.textContent='Hentet ✓';},1200);}
+  var wStep=1;
+  function wizOpen(){wStep=1;wizRender();ov('wizardModal',true);}
+  function wizGo(dir){const isNew=document.querySelector('[data-testid=wizard-type-new]').checked;
+    document.querySelector('[data-testid=wizard-newonly]').hidden=!isNew;
+    if(dir>0&&wStep<3)wStep++;else if(dir<0&&wStep>1)wStep--;wizRender();}
+  function wizRender(){[1,2,3].forEach(function(i){document.querySelector('[data-testid=wizard-step-'+i+']').hidden=i!==wStep;});
+    document.querySelectorAll('[data-testid=wizard-steps] span').forEach(function(s){s.innerHTML=s.dataset.s==String(wStep)?'<b>'+s.textContent.replace(/<\/?b>/g,'')+'</b>':s.textContent.replace(/<\/?b>/g,'');});
+    document.querySelector('[data-testid=wizard-back]').disabled=wStep===1;
+    document.querySelector('[data-testid=wizard-next]').textContent=wStep===3?'Indsend':'Næste';}
+  function validateForm(){const em=document.querySelector('[data-testid=text-email]');const err=document.querySelector('[data-testid=err-email]');
+    const ok=/.+@.+\..+/.test(em.value);em.setAttribute('aria-invalid',String(!ok&&em.value!==''));
+    err.textContent=(!ok&&em.value!=='')?'Ugyldig e-mail':'';document.querySelector('[data-testid=form-status]').textContent=ok?'Valideret ✓':'Fejl i formular';
+    toast(ok?'Validering ok':'Ret fejl først');}
+  document.getElementById('extreme').addEventListener('submit',function(e){e.preventDefault();validateForm();toast('Submit fanget (ingen rigtig indsendelse)');});
+  // shadow DOM custom element
+  customElements.define('sf-shadow-field',class extends HTMLElement{connectedCallback(){const s=this.attachShadow({mode:'open'});
+    s.innerHTML='<style>input{padding:8px;border:1px solid #999;border-radius:6px;width:100%}</style><input aria-label="Shadow app subtitle" placeholder="Felt i shadow root">';}});
+</script>
+</body>
+</html>
