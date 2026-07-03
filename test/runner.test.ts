@@ -1,0 +1,79 @@
+import { describe, expect, test } from "bun:test";
+import type { FlowResult } from "@broberg/lens-client";
+import { analyse, buildFlow, render } from "../src/runner";
+import { classifyResolution } from "../src/degraded";
+import type { FormSchema } from "../src/schema";
+
+const schema: FormSchema = {
+  form: "test/x",
+  steps: [
+    {
+      id: "s1",
+      goto: "/",
+      fields: [
+        { name: "title", action: "fill", locator: { testid: "text-title", role: "textbox" }, value: "{{ app }}" },
+        { name: "country", action: "select", locator: { testid: "select-country" }, value: "Danmark" },
+        { name: "go", action: "click", locator: { role: "button", name: "Submit" } },
+      ],
+    },
+  ],
+};
+
+describe("render", () => {
+  test("substitutes {{ key }} and leaves unknowns", () => {
+    expect(render("hi {{ app }} {{ x }}", { app: "StoreForm" })).toBe("hi StoreForm {{ x }}");
+  });
+});
+
+describe("buildFlow", () => {
+  test("translates schema → FlowRequest steps", () => {
+    const { request, fieldByStep } = buildFlow(schema, { baseUrl: "http://localhost:4599", data: { app: "StoreForm" } });
+    expect(request.base_url).toBe("http://localhost:4599");
+    expect(request.steps).toHaveLength(4); // goto + 3 fields
+    expect(request.steps[0]).toEqual({ action: "goto", url: "/" });
+    expect(request.steps[1]).toEqual({ action: "fill", target: { testid: "text-title", role: "textbox" }, value: "StoreForm" });
+    expect(request.steps[2]).toEqual({ action: "select", target: { testid: "select-country" }, value: "Danmark" });
+    expect(request.steps[3]).toEqual({ action: "click", target: { role: "button", name: "Submit" } });
+    expect(fieldByStep.get(1)?.name).toBe("title");
+    expect(fieldByStep.get(3)?.name).toBe("go");
+  });
+
+  test("throws without a base_url", () => {
+    expect(() => buildFlow(schema)).toThrow();
+  });
+});
+
+describe("degraded classification", () => {
+  test("resolved via testid when testid provided = ok", () => {
+    expect(classifyResolution({ testid: "a", role: "button" }, "testid")).toBe("ok");
+  });
+  test("resolved via role when testid provided = degraded", () => {
+    expect(classifyResolution({ testid: "a", role: "button" }, "role")).toBe("degraded");
+  });
+  test("resolved via role when role is the top layer = ok", () => {
+    expect(classifyResolution({ role: "button", name: "Submit" }, "role")).toBe("ok");
+  });
+  test("vision is always the strongest signal", () => {
+    expect(classifyResolution({ testid: "a" }, "vision")).toBe("vision");
+  });
+});
+
+describe("analyse", () => {
+  test("collects degraded matches + the first failure from a FlowResult", () => {
+    const { fieldByStep } = buildFlow(schema, { baseUrl: "http://x", data: { app: "y" } });
+    const result: FlowResult = {
+      run_id: "r1",
+      status: "failed",
+      steps: [
+        { index: 0, action: "goto", status: "ok", ms: 1 },
+        { index: 1, action: "fill", status: "ok", ms: 2, resolved_via: "role" }, // testid provided → degraded
+        { index: 2, action: "select", status: "ok", ms: 2, resolved_via: "testid" }, // ok
+        { index: 3, action: "click", status: "failed", ms: 5, error: "no match", screenshot_url: "u" },
+      ],
+    };
+    const report = analyse(result, fieldByStep);
+    expect(report.status).toBe("failed");
+    expect(report.degraded).toEqual([{ field: "title", index: 1, resolved_via: "role", severity: "degraded" }]);
+    expect(report.failure).toEqual({ field: "go", index: 3, action: "click", error: "no match", screenshot_url: "u" });
+  });
+});

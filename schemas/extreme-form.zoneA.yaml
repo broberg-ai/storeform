@@ -1,0 +1,30 @@
+# Sample StoreForm schema targeting the fixture's Zone A (fixtures/extreme-form).
+# Each locator carries layered self-heal keys (testid first, then role/label/text
+# as fallback) so Lens reports resolved_via and we can catch schema drift.
+# base_url is injected at run (the local fixture server, e.g. http://localhost:4599).
+form: test/extreme-form-zoneA
+steps:
+  - id: fill-basics
+    fields:
+      - name: title
+        action: fill
+        locator: { testid: text-title, role: textbox, label: Titel }
+        value: "{{ app_name }}"
+      - name: support-email
+        action: fill
+        locator: { testid: text-email, label: E-mail, placeholder: "you@domain.com" }
+        value: "{{ support_email }}"
+      - name: country
+        action: select
+        locator: { testid: select-country, label: Land }
+        value: Danmark
+      - name: accept-terms
+        action: click
+        locator: { testid: check-terms, text: "Jeg accepterer vilkår" }
+      - name: release-notes
+        action: fill
+        locator: { testid: text-textarea, role: textbox, label: Beskrivelse }
+        value: "{{ release_notes }}"
+      - name: submit-visible
+        action: expectVisible
+        locator: { testid: btn-submit, role: button, text: "Send til review" }
