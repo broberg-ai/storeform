@@ -4,6 +4,7 @@ import { loadSchema } from "./schema";
 import { buildFlow, runForm } from "./runner";
 import { getLensClient } from "./lens";
 import { reportDegraded } from "./upmetrics";
+import { emitException, initTelemetry } from "./telemetry";
 
 /**
  * StoreForm CLI — the v1 manual trigger (§8: manual CLI). Drives a schema
@@ -42,6 +43,7 @@ export function parseRunArgs(argv: string[]): RunArgs {
 }
 
 async function main(): Promise<void> {
+  initTelemetry(); // Upmetrics error-tracking (ship-dark without UPMETRICS_DSN)
   const args = parseRunArgs(Bun.argv.slice(2));
   if (!args.schemaPath) {
     console.error("usage: bun run src/run.ts <schema.yaml> [--base-url URL] [--state storageState.json] [--data k=v]... [--dry]");
@@ -70,6 +72,7 @@ async function main(): Promise<void> {
     }
   } catch (e) {
     // LensClientError (transport/auth): token missing, service ship-dark, network after retry.
+    emitException(e, { schema: schema.form });
     console.error(`✗ Lens transport/auth error: ${(e as Error).message}`);
     process.exit(3);
   }
