@@ -1,4 +1,4 @@
-import type { FlowRequest, FlowResult, FlowStep, LensClient, Target } from "@broberg/lens-client";
+import type { FlowRequest, FlowResult, FlowStep, LensClient, MintAuth, StorageState, Target } from "@broberg/lens-client";
 import type { FieldInput, FormSchema, LocateSpecInput } from "./schema";
 import { classifyResolution, type Severity } from "./degraded";
 
@@ -32,6 +32,10 @@ export interface BuildOpts {
   baseUrl?: string;
   /** Values for {{ key }} templating in field values. */
   data?: Record<string, string>;
+  /** Pre-authenticated session (the target's login — handled outside v1). */
+  storageState?: StorageState;
+  /** Or let Lens mint a session from the target's mint endpoint. */
+  auth?: MintAuth;
 }
 
 interface FieldRef {
@@ -69,6 +73,8 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
   if (schema.viewport) request.viewport = schema.viewport;
   if (schema.device) request.device = schema.device;
   if (schema.mutates != null) request.mutates = schema.mutates;
+  if (opts.storageState) request.storageState = opts.storageState;
+  if (opts.auth) request.auth = opts.auth;
   return { request, fieldByStep };
 }
 

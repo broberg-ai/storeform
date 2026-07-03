@@ -1,0 +1,45 @@
+# DRAFT — App Store Connect "Prepare for Submission" (app-version metadata).
+#
+# ⚠️ The locators below are BEST-GUESS accessible names. They MUST be validated
+# and iterated against the REAL ASC form (this is F001.3's "iterér indtil
+# stabil"): with an authed ASC session + cloud token, capture the live form via
+# Lens, read the ACTUAL role/label/text, then tighten each locator. `resolved_via`
+# in the run report tells us which layer held (anything below `label` = a
+# degraded match = the schema needs a better key).
+#
+# v1 STOPS before "Add for Review" / "Submit for Review" — no auto-submit
+# (that irreversible step is F002). We only assert the submit button is present.
+#
+# Run (once token + authed session exist):
+#   bun run src/run.ts schemas/app-store-connect.version-submission.yaml \
+#     --base-url "https://appstoreconnect.apple.com/apps/<id>/appstore/<verId>" \
+#     --state asc-session.json \
+#     --data whats_new="Fejlrettelser og forbedringer." --data keywords="foo,bar"
+form: app-store-connect/version-submission
+mutates: true
+steps:
+  - id: prepare-submission
+    fields:
+      - name: whats-new
+        action: fill
+        locator: { label: "What's New in This Version", role: textbox, text: "What's New" }
+        value: "{{ whats_new }}"
+      - name: promotional-text
+        action: fill
+        locator: { label: "Promotional Text", role: textbox }
+        value: "{{ promotional_text }}"
+      - name: keywords
+        action: fill
+        locator: { label: "Keywords", role: textbox }
+        value: "{{ keywords }}"
+      - name: support-url
+        action: fill
+        locator: { label: "Support URL", role: textbox }
+        value: "{{ support_url }}"
+      - name: marketing-url
+        action: fill
+        locator: { label: "Marketing URL", role: textbox }
+        value: "{{ marketing_url }}"
+      - name: submit-button-present
+        action: expectVisible
+        locator: { role: button, text: "Add for Review" }
