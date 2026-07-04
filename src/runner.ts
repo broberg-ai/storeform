@@ -55,12 +55,6 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
   const steps: FlowStep[] = [];
   const fieldByStep = new Map<number, FieldRef>();
 
-  // Cloud Lens /flow does NOT auto-navigate to base_url (unlike the local daemon
-  // MCP). If the schema doesn't open with its own goto, inject one so the target
-  // page is actually loaded before the first field — else every cloud run fails
-  // at step 0 with "no layer matched" on a blank page.
-  if (!schema.steps[0]?.goto) steps.push({ action: "goto", url: base_url });
-
   for (const step of schema.steps) {
     if (step.goto) {
       const goto: Extract<FlowStep, { action: "goto" }> = { action: "goto", url: step.goto };

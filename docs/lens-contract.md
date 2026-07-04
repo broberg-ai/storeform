@@ -20,7 +20,7 @@ Kilde: cardmem intercom **#15611 · #15613 · #15627 · #15642** (2026-07-03). F
 - **POST `/capture`** · **GET `/artifact?key=…`** (Bearer).
 
 ### Verificeret live (F001.2, 2026-07-04)
-- **Sky-`/flow` auto-navigerer IKKE til `base_url`.** Modsat den lokale daemon-MCP (`lens_run_flow`, som selv åbner `base_url`) starter sky-`/flow` på en blank side → uden et ledende `goto`-step fejler step 0 med `locate: no layer matched`. **Motoren (`buildFlow`) injicerer derfor et `goto base_url`-step når schemaet ikke selv åbner med `goto`.** Relativ `goto {url:'/'}` resolver mod `base_url`, så et enkelt deep-path-`goto` (fx `/apps/{id}/version`) rækker til ASC.
+- **Sky-`/flow` auto-navigerer nu til `base_url` før step 0** (paritet med den lokale daemon-MCP). Kort divergens fundet+lukket samme dag: den gamle sky-engine startede på en blank side, så en goto-fri flow fejlede step 0 med `locate: no layer matched`. Vi injicerede midlertidigt et `goto base_url` i `buildFlow`; components rettede rod-årsagen i `@broberg/lens-engine@0.1.1` (runFlow auto-navigerer når step 0 ikke allerede er et `goto`, idempotent), cardmem bumpede lens-cloud + bekræftede live-paritet (#15943), og **workaround'en er fjernet igen** (re-bevist live: goto-fri Zone-B-flow → sky-Lens navigerer selv, 4/4 steps pass). Et deep-path-`goto` (fx `/apps/{id}/version`) i schemaet resolver stadig mod `base_url` for ASC.
 - **Self-heal bekræftet mod sky-Lens:** Zone-B (ingen testids) fyldt 100% via `resolved_via` = `role` / `label` / `text` (lag 1+2). Kræver `LENS_CLOUD_TOKEN` (Bearer) — den LOKALE daemon kan kun testid/CSS, så role/label/text-self-heal SKAL bevises på sky-Lens.
 - **Cold-start:** første kald efter idle ~6s (health-prewarm i `@broberg/lens-client` håndterer 502-retry).
 

@@ -38,17 +38,18 @@ describe("buildFlow", () => {
     expect(fieldByStep.get(3)?.name).toBe("go");
   });
 
-  test("injects a leading goto base_url when the schema has no goto", () => {
-    // Cloud Lens does NOT auto-navigate — the engine must open the page itself.
+  test("a goto-less schema emits no leading goto (cloud Lens auto-navigates to base_url)", () => {
+    // sky-Lens reached parity with the daemon (lens-engine@0.1.1): a goto-less
+    // flow auto-navigates to base_url before step 0, so the engine must NOT
+    // inject one — step 0 is the first field.
     const noGoto: FormSchema = {
       form: "test/y",
       steps: [{ id: "s1", fields: [{ name: "title", action: "fill", locator: { role: "textbox" }, value: "x" }] }],
     };
     const { request, fieldByStep } = buildFlow(noGoto, { baseUrl: "http://localhost:4599" });
-    expect(request.steps).toHaveLength(2); // injected goto + 1 field
-    expect(request.steps[0]).toEqual({ action: "goto", url: "http://localhost:4599" });
-    expect(request.steps[1]).toEqual({ action: "fill", target: { role: "textbox" }, value: "x" });
-    expect(fieldByStep.get(1)?.name).toBe("title"); // field index shifted past the goto
+    expect(request.steps).toHaveLength(1); // no injected goto — just the field
+    expect(request.steps[0]).toEqual({ action: "fill", target: { role: "textbox" }, value: "x" });
+    expect(fieldByStep.get(0)?.name).toBe("title");
   });
 
   test("throws without a base_url", () => {
