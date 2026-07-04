@@ -19,12 +19,17 @@ Kilde: cardmem intercom **#15611 · #15613 · #15627 · #15642** (2026-07-03). F
   - svar: `{ run_id, status:passed|failed, final_url, steps:[{index,action,status,ms,resolved_via?,detail?,error?,screenshot_url?}] }`. **Fejlende step STOPPER + pinner failure-screenshot.**
 - **POST `/capture`** · **GET `/artifact?key=…`** (Bearer).
 
+### Verificeret live (F001.2, 2026-07-04)
+- **Sky-`/flow` auto-navigerer IKKE til `base_url`.** Modsat den lokale daemon-MCP (`lens_run_flow`, som selv åbner `base_url`) starter sky-`/flow` på en blank side → uden et ledende `goto`-step fejler step 0 med `locate: no layer matched`. **Motoren (`buildFlow`) injicerer derfor et `goto base_url`-step når schemaet ikke selv åbner med `goto`.** Relativ `goto {url:'/'}` resolver mod `base_url`, så et enkelt deep-path-`goto` (fx `/apps/{id}/version`) rækker til ASC.
+- **Self-heal bekræftet mod sky-Lens:** Zone-B (ingen testids) fyldt 100% via `resolved_via` = `role` / `label` / `text` (lag 1+2). Kræver `LENS_CLOUD_TOKEN` (Bearer) — den LOKALE daemon kan kun testid/CSS, så role/label/text-self-heal SKAL bevises på sky-Lens.
+- **Cold-start:** første kald efter idle ~6s (health-prewarm i `@broberg/lens-client` håndterer 502-retry).
+
 ## Vision-fallback (F215.8) — Set-of-Marks
 Rå koordinat-genkendelse er UPÅLIDELIG (modeller peger skævt) → ville bryde #7. I stedet: markér alle klikbare felter med **nummererede badges** → spørg modellen HVILKET NUMMER der matcher → klik det RIGTIGE DOM-element på dets center. Returnerer et ægte element (virker for ALLE actions), fejler RENT ved no-match. Rute = Gemini-2.5-flash via OpenRouter (cardmem's nøgle), env-overridable (`LENS_VISION_PROVIDER`/`LENS_VISION_MODEL`).
 **Ships dark:** inaktiv indtil en vision-nøgle sættes på lens-appen. **Aktivering = Christians go** (det tænder vision-forbrug/omkostning) — sker SAMTIDIG med at vi får `LENS_CLOUD_TOKEN`, ved **F001.3** (første rigtige ASC-run).
 
 ## Token + vision-nøgle — LEVERES IKKE via intercom
-Secrets aldrig i en besked (Trail-indekseret). Ved F001.3: cardmem sætter `LENS_CLOUD_TOKEN` som **Fly-secret** på vores app (eller via **Secrets Vault F214** → `cardmem_get_secret`) OG tænder vision-nøglen på lens-appen — begge på Christians go. **Lokalt test-form-arbejde (F001.2) + Zone-B ROLE/TEXT kræver INGEN af dem.**
+Secrets aldrig i en besked (Trail-indekseret). `LENS_CLOUD_TOKEN` blev leveret 2026-07-04 (cardmem #15918, vej b: skrevet direkte i vores gitignorede `.env`, piped fra keychain). **Zone-B role/text/label-self-heal (F001.2) KØRER på sky-Lens og KRÆVER token'en** — kun testid/CSS via den lokale daemon er token-fri. Vision-nøglen (F215.8) er stadig OFF (opt-in per capture) — tændes først på Christians go hvis en rigtig kørsel misser på DOM-lagene.
 
 ## Capability-map — StoreForms behov 1–8
 

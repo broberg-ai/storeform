@@ -1,0 +1,33 @@
+# Zone B of the fixture (fixtures/extreme-form) = the self-heal gauntlet: NO
+# stable data-testids. This schema drives it via lag-1 (role/label) + lag-2
+# (text) locators ONLY — proving cloud Lens self-heals when testid is gone.
+#
+# app_name deliberately declares a testid that does NOT exist in Zone B: Lens
+# must fall back to role → resolved_via="role" BELOW the declared testid = a
+# 'degraded match' (schema-drift signal → Upmetrics). The other three resolve
+# at their declared top layer (label / text / role) = clean self-heal.
+#
+# base_url is injected at run (--base-url <public tunnel URL>) since cloud Lens
+# cannot reach localhost.
+form: test/extreme-form-zoneB
+steps:
+  - id: fill-gauntlet
+    fields:
+      # lag-1 role, but declared testid is ABSENT → degraded (resolves via role)
+      - name: app-name
+        action: fill
+        locator: { testid: sf-app-name, role: textbox, name: Application name }
+        value: "{{ app_name }}"
+      # lag-1 label — real <label for>, unstable class, no testid
+      - name: primary-category
+        action: select
+        locator: { label: Primær kategori }
+        value: Værktøjer
+      # lag-2 text — button with only visible text, junk class, no testid
+      - name: send-for-review
+        action: click
+        locator: { text: Send til gennemgang }
+      # lag-1 role — ARIA switch via accessible name, no testid
+      - name: auto-reply
+        action: click
+        locator: { role: switch, name: Enable auto reply }
