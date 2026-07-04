@@ -7,14 +7,24 @@ import { reportDegraded } from "./upmetrics";
 import { emitException, initTelemetry } from "./telemetry";
 
 /**
+ * The local cardmem Lens daemon's tokenless flow target. Used for device/IP-bound
+ * targets (e.g. App Store Connect): the daemon runs on the same machine + IP as the
+ * login, so Apple accepts the session — unlike cloud Lens's datacenter IP. token:""
+ * blocks the LENS_CLOUD_TOKEN env-fallback so the cloud Bearer never leaks locally.
+ */
+const DAEMON_LENS_URL = "http://127.0.0.1:7475/lens";
+
+/**
  * StoreForm CLI — the v1 manual trigger (§8: manual CLI). Drives a schema
  * through Lens (via @broberg/lens-client). Login/2FA is handled OUTSIDE v1:
  * pass a pre-authenticated Playwright storageState with --state.
  *
  *   bun run src/run.ts <schema.yaml> --base-url <url> \
- *     [--state storageState.json] [--data key=value]... [--dry]
+ *     [--daemon] [--state storageState.json] [--data key=value]... [--dry]
  *
- * --dry prints the translated FlowRequest without calling Lens (no token needed).
+ * --daemon routes to the LOCAL Lens daemon (same-IP, tokenless) instead of cloud
+ * Lens — required for device/IP-bound 2FA sites like ASC. --dry prints the
+ * translated FlowRequest without calling Lens (no token needed).
  */
 export interface RunArgs {
   schemaPath?: string;
@@ -22,13 +32,15 @@ export interface RunArgs {
   statePath?: string;
   data: Record<string, string>;
   dry: boolean;
+  daemon: boolean;
 }
 
 export function parseRunArgs(argv: string[]): RunArgs {
-  const args: RunArgs = { data: {}, dry: false };
+  const args: RunArgs = { data: {}, dry: false, daemon: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--dry") args.dry = true;
+    else if (a === "--daemon") args.daemon = true;
     else if (a === "--base-url") args.baseUrl = argv[++i];
     else if (a === "--state") args.statePath = argv[++i];
     else if (a === "--data") {
@@ -46,7 +58,7 @@ async function main(): Promise<void> {
   initTelemetry(); // Upmetrics error-tracking (ship-dark without UPMETRICS_DSN)
   const args = parseRunArgs(Bun.argv.slice(2));
   if (!args.schemaPath) {
-    console.error("usage: bun run src/run.ts <schema.yaml> [--base-url URL] [--state storageState.json] [--data k=v]... [--dry]");
+    console.error("usage: bun run src/run.ts <schema.yaml> [--daemon] [--base-url URL] [--state storageState.json] [--data k=v]... [--dry]");
     process.exit(2);
   }
   const schema = loadSchema(args.schemaPath);
@@ -58,7 +70,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const client = getLensClient();
+  const client = args.daemon ? getLensClient({ baseUrl: DAEMON_LENS_URL, token: "", prewarm: false }) : getLensClient();
   try {
     const report = await runForm(schema, client, { baseUrl: args.baseUrl, data: args.data, storageState });
     reportDegraded(schema.form, report.degraded);

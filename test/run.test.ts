@@ -25,11 +25,18 @@ describe("parseRunArgs", () => {
     expect(a.dry).toBe(true);
   });
 
-  test("defaults: no schema, no dry", () => {
+  test("defaults: no schema, no dry, no daemon", () => {
     const a = parseRunArgs([]);
     expect(a.schemaPath).toBeUndefined();
     expect(a.dry).toBe(false);
+    expect(a.daemon).toBe(false);
     expect(a.data).toEqual({});
+  });
+
+  test("--daemon routes to the local daemon", () => {
+    const a = parseRunArgs(["schemas/asc.yaml", "--daemon", "--state", "asc-state.json"]);
+    expect(a.daemon).toBe(true);
+    expect(a.statePath).toBe("asc-state.json");
   });
 });
 
