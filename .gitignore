@@ -148,3 +148,10 @@ vite.config.ts.timestamp-*
 .env.*
 !.env.example
 .claude/settings.local.json
+
+# StoreForm local checkpoint state (F001.4) + captured sessions — never commit
+.storeform-checkpoints.db
+*.db
+*-state.json
+asc-state.json
+gp-session.json

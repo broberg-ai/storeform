@@ -1,10 +1,16 @@
 import type { FlowRequest, FlowResult, FlowStep, LensClient, MintAuth, StorageState, Target } from "@broberg/lens-client";
 import type { FieldInput, FormSchema, LocateSpecInput } from "./schema";
 import { classifyResolution, type Severity } from "./degraded";
+import type { StepRecord } from "./checkpoint";
 
 /** Simple {{ key }} templating from a data record. Unknown keys are left as-is. */
 export function render(value: string, data: Record<string, string> = {}): string {
   return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (m, k: string) => (k in data ? data[k]! : m));
+}
+
+/** The rendered value a field writes (fill/type/select/expectText), else null. */
+function renderedValue(field: FieldInput, data: Record<string, string>): string | null {
+  return field.value != null && ["fill", "type", "select", "expectText"].includes(field.action) ? render(field.value, data) : null;
 }
 
 function fieldToStep(field: FieldInput, data: Record<string, string>): FlowStep {
@@ -36,11 +42,17 @@ export interface BuildOpts {
   storageState?: StorageState;
   /** Or let Lens mint a session from the target's mint endpoint. */
   auth?: MintAuth;
+  /** Resume: skip the first N fields (already completed — F001.4 checkpoint). */
+  resumeFrom?: number;
 }
 
 interface FieldRef {
   name: string;
   locator: LocateSpecInput;
+  /** Absolute field index across the whole schema (stable under resume slicing). */
+  index: number;
+  /** Rendered value this field writes, or null (click/expectVisible/upload). */
+  value: string | null;
 }
 
 /**
@@ -52,10 +64,14 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
   const base_url = opts.baseUrl ?? schema.base_url;
   if (!base_url) throw new Error("buildFlow: base_url required (set schema.base_url or opts.baseUrl)");
   const data = opts.data ?? {};
+  const resumeFrom = opts.resumeFrom ?? 0;
   const steps: FlowStep[] = [];
   const fieldByStep = new Map<number, FieldRef>();
+  let fieldIdx = 0; // absolute field index across the whole schema
 
   for (const step of schema.steps) {
+    // Navigation is always re-emitted (resume must re-open the form), only the
+    // already-completed FIELDS are skipped.
     if (step.goto) {
       const goto: Extract<FlowStep, { action: "goto" }> = { action: "goto", url: step.goto };
       if (step.waitFor != null) goto.waitFor = step.waitFor;
@@ -64,8 +80,13 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
       steps.push(typeof step.waitFor === "number" ? { action: "waitFor", ms: step.waitFor } : { action: "waitFor", target: step.waitFor });
     }
     for (const field of step.fields) {
-      fieldByStep.set(steps.length, { name: field.name, locator: field.locator });
+      if (fieldIdx < resumeFrom) {
+        fieldIdx++; // already completed in a prior run — never re-submit it
+        continue;
+      }
+      fieldByStep.set(steps.length, { name: field.name, locator: field.locator, index: fieldIdx, value: renderedValue(field, data) });
       steps.push(fieldToStep(field, data));
+      fieldIdx++;
     }
   }
 
@@ -89,27 +110,39 @@ export interface RunReport {
   status: FlowResult["status"];
   degraded: DegradedMatch[];
   failure?: { field?: string; index: number; action: string; error?: string; screenshot_url?: string };
+  /** Per-field outcomes (absolute index) ready to persist as checkpoint state. */
+  records: StepRecord[];
   result: FlowResult;
 }
 
 /**
- * Analyse a FlowResult against the schema: collect degraded matches + the first
- * failing step. Pure — split out so it is unit-testable without a live Lens.
+ * Analyse a FlowResult against the schema: collect degraded matches, the first
+ * failing step, and per-field checkpoint records. Pure — unit-testable without
+ * a live Lens.
  */
 export function analyse(result: FlowResult, fieldByStep: Map<number, FieldRef>): RunReport {
   const degraded: DegradedMatch[] = [];
+  const records: StepRecord[] = [];
   let failure: RunReport["failure"];
   for (const s of result.steps) {
     const f = fieldByStep.get(s.index);
     if (f) {
       const severity = classifyResolution(f.locator, s.resolved_via);
       if (severity !== "ok") degraded.push({ field: f.name, index: s.index, resolved_via: s.resolved_via!, severity });
+      records.push({
+        index: f.index,
+        name: f.name,
+        value: f.value,
+        resolved_via: s.resolved_via ?? null,
+        screenshot_url: s.screenshot_url ?? null,
+        status: s.status,
+      });
     }
     if (s.status === "failed" && !failure) {
       failure = { field: f?.name, index: s.index, action: s.action, error: s.error, screenshot_url: s.screenshot_url };
     }
   }
-  return { status: result.status, degraded, failure, result };
+  return { status: result.status, degraded, failure, records, result };
 }
 
 /**

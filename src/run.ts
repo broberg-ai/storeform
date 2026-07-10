@@ -5,6 +5,7 @@ import { buildFlow, runForm } from "./runner";
 import { getLensClient } from "./lens";
 import { reportDegraded } from "./upmetrics";
 import { emitException, initTelemetry } from "./telemetry";
+import { clearCheckpoint, openCheckpointDb, recordStep, resumePoint } from "./checkpoint";
 
 /**
  * The local cardmem Lens daemon's tokenless flow target. Used for device/IP-bound
@@ -20,11 +21,12 @@ const DAEMON_LENS_URL = "http://127.0.0.1:7475/lens";
  * pass a pre-authenticated Playwright storageState with --state.
  *
  *   bun run src/run.ts <schema.yaml> --base-url <url> \
- *     [--daemon] [--state storageState.json] [--data key=value]... [--dry]
+ *     [--daemon] [--state storageState.json] [--data key=value]... [--resume] [--dry]
  *
  * --daemon routes to the LOCAL Lens daemon (same-IP, tokenless) instead of cloud
- * Lens — required for device/IP-bound 2FA sites like ASC. --dry prints the
- * translated FlowRequest without calling Lens (no token needed).
+ * Lens — required for device/IP-bound 2FA sites like ASC. --resume continues an
+ * interrupted run from the first unfinished field (F001.4 checkpoint). --dry
+ * prints the translated FlowRequest without calling Lens (no token needed).
  */
 export interface RunArgs {
   schemaPath?: string;
@@ -33,14 +35,16 @@ export interface RunArgs {
   data: Record<string, string>;
   dry: boolean;
   daemon: boolean;
+  resume: boolean;
 }
 
 export function parseRunArgs(argv: string[]): RunArgs {
-  const args: RunArgs = { data: {}, dry: false, daemon: false };
+  const args: RunArgs = { data: {}, dry: false, daemon: false, resume: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--dry") args.dry = true;
     else if (a === "--daemon") args.daemon = true;
+    else if (a === "--resume") args.resume = true;
     else if (a === "--base-url") args.baseUrl = argv[++i];
     else if (a === "--state") args.statePath = argv[++i];
     else if (a === "--data") {
@@ -58,7 +62,7 @@ async function main(): Promise<void> {
   initTelemetry(); // Upmetrics error-tracking (ship-dark without UPMETRICS_DSN)
   const args = parseRunArgs(Bun.argv.slice(2));
   if (!args.schemaPath) {
-    console.error("usage: bun run src/run.ts <schema.yaml> [--daemon] [--base-url URL] [--state storageState.json] [--data k=v]... [--dry]");
+    console.error("usage: bun run src/run.ts <schema.yaml> [--daemon] [--base-url URL] [--state storageState.json] [--data k=v]... [--resume] [--dry]");
     process.exit(2);
   }
   const schema = loadSchema(args.schemaPath);
@@ -70,9 +74,16 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Checkpoint (F001.4): --resume continues from the first unfinished field; a
+  // fresh run clears the form's prior checkpoint so it starts from field 0.
+  const db = openCheckpointDb();
+  const resumeFrom = args.resume ? resumePoint(db, schema.form) : (clearCheckpoint(db, schema.form), 0);
+  if (args.resume && resumeFrom > 0) console.log(`↻ resuming ${schema.form} from field ${resumeFrom}`);
+
   const client = args.daemon ? getLensClient({ baseUrl: DAEMON_LENS_URL, token: "", prewarm: false }) : getLensClient();
   try {
-    const report = await runForm(schema, client, { baseUrl: args.baseUrl, data: args.data, storageState });
+    const report = await runForm(schema, client, { baseUrl: args.baseUrl, data: args.data, storageState, resumeFrom });
+    for (const r of report.records) recordStep(db, schema.form, r); // persist progress for a future --resume
     reportDegraded(schema.form, report.degraded);
     if (report.status === "passed") {
       console.log(`✓ ${schema.form}: passed — ${report.result.steps.length} steps, ${report.degraded.length} degraded match(es)`);
