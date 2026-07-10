@@ -6,6 +6,7 @@ import { getLensClient } from "./lens";
 import { reportDegraded } from "./upmetrics";
 import { emitException, initTelemetry } from "./telemetry";
 import { clearCheckpoint, openCheckpointDb, recordStep, resumePoint } from "./checkpoint";
+import { buildFailureReport, notifyFailure, writeFailureReport } from "./graceful";
 
 /**
  * The local cardmem Lens daemon's tokenless flow target. Used for device/IP-bound
@@ -91,6 +92,12 @@ async function main(): Promise<void> {
       const f = report.failure;
       console.error(`✗ ${schema.form}: FAILED at step ${f?.index} (${f?.action}${f?.field ? " · " + f.field : ""}): ${f?.error ?? "unknown"}`);
       if (f?.screenshot_url) console.error(`  screenshot: ${f.screenshot_url}`);
+      // Graceful fail (F001.8): STOP, persist a "needs review" report + notify —
+      // never guess, never submit. Checkpoint already saved per-field state above.
+      const failure = buildFailureReport(schema, report, { baseUrl: args.baseUrl });
+      const reportPath = writeFailureReport(failure);
+      const notified = await notifyFailure(failure);
+      console.error(`  needs-review saved: ${reportPath}${notified.cardmem ? " · cardmem inbox item created" : ""}`);
       process.exit(1);
     }
   } catch (e) {
