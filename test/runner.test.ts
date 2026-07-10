@@ -52,6 +52,32 @@ describe("buildFlow", () => {
     expect(fieldByStep.get(0)?.name).toBe("title");
   });
 
+  test("pacing inserts a randomized waitFor before each field (F001.9)", () => {
+    const paced: FormSchema = {
+      form: "test/pace",
+      pacing: { min_ms: 200, max_ms: 800 },
+      steps: [
+        {
+          id: "s",
+          fields: [
+            { name: "a", action: "fill", locator: { role: "textbox" }, value: "x" },
+            { name: "b", action: "click", locator: { role: "button", name: "Go" } },
+          ],
+        },
+      ],
+    };
+    const { request, fieldByStep } = buildFlow(paced, { baseUrl: "http://x", rng: () => 0.5 });
+    expect(request.steps).toHaveLength(4); // waitFor, fill, waitFor, click
+    // rng()=0.5 → floor(0.5*(800-200+1))+200 = 500
+    expect(request.steps[0]).toEqual({ action: "waitFor", ms: 500 });
+    expect(request.steps[1]).toEqual({ action: "fill", target: { role: "textbox" }, value: "x" });
+    expect(request.steps[2]).toEqual({ action: "waitFor", ms: 500 });
+    expect(request.steps[3]).toEqual({ action: "click", target: { role: "button", name: "Go" } });
+    // field→step mapping stays correct past the injected waits
+    expect(fieldByStep.get(1)?.name).toBe("a");
+    expect(fieldByStep.get(3)?.name).toBe("b");
+  });
+
   test("throws without a base_url", () => {
     expect(() => buildFlow(schema)).toThrow();
   });

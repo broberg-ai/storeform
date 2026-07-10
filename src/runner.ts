@@ -1,5 +1,5 @@
 import type { FlowRequest, FlowResult, FlowStep, LensClient, MintAuth, StorageState, Target } from "@broberg/lens-client";
-import type { FieldInput, FormSchema, LocateSpecInput } from "./schema";
+import type { FieldInput, FormSchema, LocateSpecInput, PacingInput } from "./schema";
 import { classifyResolution, type Severity } from "./degraded";
 import type { StepRecord } from "./checkpoint";
 
@@ -44,6 +44,10 @@ export interface BuildOpts {
   auth?: MintAuth;
   /** Resume: skip the first N fields (already completed — F001.4 checkpoint). */
   resumeFrom?: number;
+  /** Override the schema's pacing interval (F001.9). */
+  pacing?: PacingInput;
+  /** Injectable RNG for pacing jitter (defaults to Math.random; set for tests). */
+  rng?: () => number;
 }
 
 interface FieldRef {
@@ -65,6 +69,8 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
   if (!base_url) throw new Error("buildFlow: base_url required (set schema.base_url or opts.baseUrl)");
   const data = opts.data ?? {};
   const resumeFrom = opts.resumeFrom ?? 0;
+  const pacing = opts.pacing ?? schema.pacing;
+  const rng = opts.rng ?? Math.random;
   const steps: FlowStep[] = [];
   const fieldByStep = new Map<number, FieldRef>();
   let fieldIdx = 0; // absolute field index across the whole schema
@@ -84,6 +90,9 @@ export function buildFlow(schema: FormSchema, opts: BuildOpts = {}): { request: 
         fieldIdx++; // already completed in a prior run — never re-submit it
         continue;
       }
+      // Human-like pacing (F001.9): a randomized wait before each field. A
+      // `waitFor` Lens action — StoreForm never drives the browser itself.
+      if (pacing) steps.push({ action: "waitFor", ms: Math.floor(rng() * (pacing.max_ms - pacing.min_ms + 1)) + pacing.min_ms });
       fieldByStep.set(steps.length, { name: field.name, locator: field.locator, index: fieldIdx, value: renderedValue(field, data) });
       steps.push(fieldToStep(field, data));
       fieldIdx++;

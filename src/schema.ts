@@ -69,6 +69,16 @@ export const stepSchema = z.object({
   fields: z.array(fieldSchema).min(1),
 });
 
+/**
+ * Human-like pacing (F001.9): a randomized delay before each field, drawn from
+ * [min_ms, max_ms]. ONE source for the interval (the schema). Realized as a
+ * `waitFor` Lens action — StoreForm never touches the browser. Real mouse-movement
+ * is a cloud-Lens capability (gap filed to cardmem); StoreForm only configures it.
+ */
+export const pacingSchema = z
+  .object({ min_ms: z.number().int().nonnegative(), max_ms: z.number().int().nonnegative() })
+  .refine((p) => p.max_ms >= p.min_ms, { message: "pacing.max_ms must be >= min_ms" });
+
 export const formSchemaSchema = z.object({
   form: z.string(),
   /** Optional default target URL; overridable per run (opts.baseUrl). */
@@ -77,12 +87,15 @@ export const formSchemaSchema = z.object({
   device: z.string().optional(),
   /** Hint that this flow mutates real target state (echoed by Lens). */
   mutates: z.boolean().optional(),
+  /** Human-like pacing interval (F001.9). Applied per field as a randomized wait. */
+  pacing: pacingSchema.optional(),
   steps: z.array(stepSchema).min(1),
 });
 
 export type LocateSpecInput = z.infer<typeof locateSpecSchema>;
 export type FieldInput = z.infer<typeof fieldSchema>;
 export type StepInput = z.infer<typeof stepSchema>;
+export type PacingInput = z.infer<typeof pacingSchema>;
 export type FormSchema = z.infer<typeof formSchemaSchema>;
 
 /** Parse + validate a schema from a YAML *or* JSON string (JSON is valid YAML). */
