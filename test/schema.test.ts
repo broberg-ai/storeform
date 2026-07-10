@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readdirSync } from "node:fs";
 import { loadSchema, parseSchema } from "../src/schema";
 
 describe("schema", () => {
@@ -27,6 +28,19 @@ describe("schema", () => {
       parseSchema("form: x\nsteps:\n  - id: s\n    fields:\n      - name: a\n        action: fill\n        locator: { testid: a }\n"),
     ).toThrow();
   });
+});
+
+describe("all committed schemas", () => {
+  // CI guard: every schema file in schemas/ must parse — catches a broken schema
+  // before it ships (a broken YAML/locator would fail a real run silently otherwise).
+  const dir = new URL("../schemas/", import.meta.url).pathname;
+  const files = readdirSync(dir).filter((f) => f.endsWith(".yaml") || f.endsWith(".yml") || f.endsWith(".json"));
+  test("schemas/ is non-empty", () => expect(files.length).toBeGreaterThan(0));
+  for (const f of files) {
+    test(`${f} parses`, () => {
+      expect(loadSchema(dir + f).steps.length).toBeGreaterThanOrEqual(1);
+    });
+  }
 });
 
 describe("platform-agnostic schemas (F001.6)", () => {
