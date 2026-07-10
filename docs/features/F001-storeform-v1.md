@@ -11,6 +11,25 @@ Kilde-plan: `@asset:019f28d5-5581-71e3-9494-668a5efc5c9f` (storeform-v1-plan.md,
 
 ---
 
+## Build-status (opdateret 2026-07-11, autonom session)
+
+| Story | Status | Note |
+|---|---|---|
+| F001.1 Upmetrics + Discovery | ✅ Done | |
+| F001.2 Schema-format & motor (lag 1–2) | ✅ 5/5 AC | Self-heal live-bevist mod sky-Lens + daemon |
+| F001.3 App Store Connect-schema | ⏳ 0/4 · **login-gated** | Udkast + `--daemon`-vej klar; venter på indlogget ASC-session |
+| F001.4 Checkpoint/resume | ✅ Done (review) | `bun:sqlite`, `--resume`, fejl-simulerings-test |
+| F001.5 Vision-fallback | ⏳ backlog · vision ships-dark | Aktiveres på Christians cost-go |
+| F001.6 Google Play-schema | 🟡 2/3 AC | Schema + platform-agnostik bevist; AC1 login-gated |
+| F001.7 Drift-detection | ⏳ backlog · gated | `lens_verify` pixel-diff + Buddycloud + rigtige forms |
+| F001.8 Graceful fail + cardmem | 🟡 3/4 AC | Stop+report+cardmem-inbox live-bevist; AC1 (Buddycloud-push) åben |
+| F001.9 Human-like pacing | 🟡 delvis | Pacing-config + delays; mouse-movement gap filet; E2E login-gated |
+| F001.10 Lens capability-map | ✅ 4/4 AC (review) | |
+
+**Motoren er substantielt bygget:** schema-parser (zod), self-heal-driving via BEGGE Lens-flader (sky + lokal daemon), checkpoint/resume, graceful-fail (→ cardmem Inbox), human-like pacing, og to platform-schemaer. De resterende åbne AC er alle gated på: (a) et indlogget ASC/Google-login (F001.3, F001.6-AC1, F001.9-E2E), (b) vision-cost-go (F001.5), (c) en Buddycloud-endpoint (F001.8-AC1, F001.7), eller (d) en Lens-capability der allerede er filet som gap. Ingen af de åbne dele kræver mere motor-kode — kun de eksterne forudsætninger.
+
+---
+
 ## 1. Problem
 
 Manuel udfyldning af release-/submission-formularer i App Store Connect og Google Play Console er gentaget, fejlfølsomt arbejde. Almindelige record-and-replay scripts brækker konstant fordi:
