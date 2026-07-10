@@ -78,6 +78,52 @@ describe("buildFlow", () => {
     expect(fieldByStep.get(3)?.name).toBe("b");
   });
 
+  test("translates type / expectText / upload actions to Lens steps", () => {
+    const s: FormSchema = {
+      form: "t",
+      steps: [
+        {
+          id: "s",
+          fields: [
+            { name: "a", action: "type", locator: { role: "textbox" }, value: "{{ x }}" },
+            { name: "b", action: "expectText", locator: { text: "Hi" }, value: "Hi" },
+            { name: "c", action: "upload", locator: { role: "button" }, files: [{ name: "f.png" }] },
+          ],
+        },
+      ],
+    };
+    const { request } = buildFlow(s, { baseUrl: "http://x", data: { x: "yo" } });
+    expect(request.steps[0]).toEqual({ action: "type", target: { role: "textbox" }, text: "yo" });
+    expect(request.steps[1]).toEqual({ action: "expectText", target: { text: "Hi" }, text: "Hi" });
+    expect(request.steps[2]).toEqual({ action: "upload", target: { role: "button" }, files: [{ name: "f.png" }] });
+  });
+
+  test("resume + pacing compose: skipped fields get no wait, included ones do", () => {
+    const s: FormSchema = {
+      form: "t",
+      pacing: { min_ms: 100, max_ms: 100 },
+      steps: [
+        {
+          id: "s",
+          fields: [
+            { name: "a", action: "fill", locator: { role: "textbox", name: "A" }, value: "1" },
+            { name: "b", action: "fill", locator: { role: "textbox", name: "B" }, value: "2" },
+            { name: "c", action: "click", locator: { role: "button", name: "C" } },
+          ],
+        },
+      ],
+    };
+    const { request, fieldByStep } = buildFlow(s, { baseUrl: "http://x", resumeFrom: 1, rng: () => 0 });
+    expect(request.steps).toEqual([
+      { action: "waitFor", ms: 100 },
+      { action: "fill", target: { role: "textbox", name: "B" }, value: "2" },
+      { action: "waitFor", ms: 100 },
+      { action: "click", target: { role: "button", name: "C" } },
+    ]);
+    expect(fieldByStep.get(1)?.index).toBe(1); // absolute field index preserved under resume
+    expect(fieldByStep.get(3)?.index).toBe(2);
+  });
+
   test("throws without a base_url", () => {
     expect(() => buildFlow(schema)).toThrow();
   });
