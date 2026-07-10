@@ -78,7 +78,12 @@ async function main(): Promise<void> {
   // Checkpoint (F001.4): --resume continues from the first unfinished field; a
   // fresh run clears the form's prior checkpoint so it starts from field 0.
   const db = openCheckpointDb();
+  const totalFields = schema.steps.reduce((n, s) => n + s.fields.length, 0);
   const resumeFrom = args.resume ? resumePoint(db, schema.form) : (clearCheckpoint(db, schema.form), 0);
+  if (args.resume && resumeFrom >= totalFields) {
+    console.log(`✓ ${schema.form}: already complete (${totalFields}/${totalFields} fields) — nothing to resume`);
+    return; // guard: avoid building an empty flow when every field is done
+  }
   if (args.resume && resumeFrom > 0) console.log(`↻ resuming ${schema.form} from field ${resumeFrom}`);
 
   const client = args.daemon ? getLensClient({ baseUrl: DAEMON_LENS_URL, token: "", prewarm: false }) : getLensClient();
