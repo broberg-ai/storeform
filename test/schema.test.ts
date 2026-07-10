@@ -28,3 +28,22 @@ describe("schema", () => {
     ).toThrow();
   });
 });
+
+describe("platform-agnostic schemas (F001.6)", () => {
+  // The SAME parser/engine loads both platform schemas — proof StoreForm is
+  // platform-agnostic: only the schema differs, no per-platform engine code.
+  test("App Store Connect + Google Play schemas both parse with the same engine", () => {
+    const asc = loadSchema(new URL("../schemas/app-store-connect.version-submission.yaml", import.meta.url).pathname);
+    const gp = loadSchema(new URL("../schemas/google-play.production-release.yaml", import.meta.url).pathname);
+    expect(asc.form).toBe("app-store-connect/version-submission");
+    expect(gp.form).toBe("google-play/production-release");
+    // both drive testid-less forms via layered self-heal locators
+    for (const s of [asc, gp]) {
+      expect(s.steps.length).toBeGreaterThanOrEqual(1);
+      const fields = s.steps.flatMap((st) => st.fields);
+      expect(fields.every((f) => f.locator.label || f.locator.role || f.locator.text)).toBe(true);
+      // v1 stops before the irreversible submit — no click on a submit/publish button
+      expect(fields.some((f) => f.action === "expectVisible")).toBe(true);
+    }
+  });
+});

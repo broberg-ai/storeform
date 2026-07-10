@@ -1,0 +1,44 @@
+# DRAFT — Google Play Console "Create production release" (release metadata).
+#
+# Platform-agnostik-bevis (F001.6): den SAMME generiske motor (src/, uændret)
+# driver BÅDE App Store Connect OG Google Play — kun schemaet skifter, ingen
+# platform-specifik kode. Apple-siden: schemas/app-store-connect.version-submission.yaml.
+#
+# ⚠️ Locators er BEST-GUESS accessible names. Google Play Console er React/Material
+# med genererede klasser + ingen stabile data-testid — så self-heal via role/label/
+# text er netop pointen. Valider + iterér mod den RIGTIGE form (F001.6 AC1) med en
+# authed session + den lokale daemon (--daemon), præcis som ASC. `resolved_via` i
+# run-rapporten viser hvilket lag der holdt (alt under label = degraded → schemaet
+# trænger til en bedre nøgle).
+#
+# v1 STOPPER før "Start rollout to Production" (den irreversible publish) — vi
+# asserter kun at review/rollout-knappen er til stede. Auto-submit er F002.
+#
+# Kør (når en authed Google Play-session findes):
+#   bun run src/run.ts schemas/google-play.production-release.yaml --daemon \
+#     --state gp-session.json \
+#     --base-url "https://play.google.com/console/u/0/developers/<devId>/app/<appId>/tracks/production" \
+#     --data release_name="1.4.0 (140)" \
+#     --data release_notes="Fejlrettelser og ydelsesforbedringer."
+form: google-play/production-release
+mutates: true
+steps:
+  - id: create-release
+    fields:
+      # Release name — Google auto-udfylder med build-versionen, men feltet er
+      # redigerbart. Label-laget først; role+placeholder som fallback.
+      - name: release-name
+        action: fill
+        locator: { label: "Release name", role: textbox, placeholder: "e.g. 1.0.0" }
+        value: "{{ release_name }}"
+      # Release notes — stor textarea (Google bruger <en-US>…</en-US>-sprogtags
+      # indeni; her fyldes selve feltet). Label → role → synlig sektions-tekst.
+      - name: release-notes
+        action: fill
+        locator: { label: "Release notes", role: textbox, text: "What's new in this release" }
+        value: "{{ release_notes }}"
+      # STOP-punkt: v1 går IKKE videre til rollout/publish. Vi bekræfter blot at
+      # næste-knappen findes (bevis på at vi nåede formularens bund), aldrig klik.
+      - name: review-button-present
+        action: expectVisible
+        locator: { role: button, text: "Review release" }
