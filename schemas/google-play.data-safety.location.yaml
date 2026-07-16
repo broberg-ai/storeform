@@ -1,54 +1,68 @@
-# DRAFT — Google Play Console "Data safety" location declaration (TASK 1, net.fdsport).
+# Google Play Console "Datasikkerhed" (Data safety) location-declaration VERIFY.
+# net.fdsport (FD Sport), read-only. VERIFIED LIVE 2026-07-16 against the real form.
 #
-# READ-ONLY VERIFY FØRST. mutates:false — denne opskrift ÆNDRER intet. Den
-# navigerer til Data-safety-oversigten og bekræfter at lokations-erklæringen
-# matcher FDS' facit. Den FILL-variant (udfyld-men-STOP-før-Save) er bevidst IKKE
-# bygget blindt: Data-safety er en fler-trins wizard, så fill-trinnene finaliseres
-# mod den RIGTIGE form med Christians login (aldrig gæt på en live prod-app).
-# Sikker sekvens aftalt med fds (#17662/#17665): verify → rapportér → kun hvis
-# noget mangler, fill men STOP før "Save". Auto-save er F002.
+# READ-ONLY (mutates:false): navigates the 5-step Datasikkerhed wizard to the
+# Forhåndsvisning (Preview) and ASSERTS the location declaration matches FDS' facit.
+# NEVER toggles a field, NEVER clicks "Gem udkast"/"Send". "Næste" only navigates.
 #
-# FDS' facit (kilde: deres interne data-safety-cheatsheet, net.fdsport, GPS tilføjet v1.6.0):
-#   Location · Collected: Yes · Data type: Precise location ·
-#   Shared w/ third parties: No · Processed ephemerally only: No ·
-#   Required or optional: Optional · Purpose: App functionality
-#   VIGTIGT: KUN foreground-lokation (ingen ACCESS_BACKGROUND_LOCATION) →
-#   Plays separate "background location"-deklaration skal IKKE udfyldes.
-#   Fri-tekst (hvis krævet, engelsk):
-#     "FD Sport collects the user's precise location only at the moment they file
-#      an injury report, and only if they opt in. The coordinates are stored on
-#      that report so the treating physiotherapist can see where the injury
-#      occurred. Location is never collected in the background, never used for
-#      tracking or advertising, and the report works fully without it."
+# ── LIVE FINDINGS (why this schema looks the way it does) ───────────────────────
+# 1. The Console renders in DANISH for this account → locators are Danish, not
+#    English. Text-based self-heal is language-fragile; role-based is robust.
+# 2. Nav DRIFT: the old "Politik → App content → Data safety" path is gone from the
+#    sidebar. Data safety is now under "Politik og programmer → Appindhold →
+#    Datasikkerhed" (below the sidebar fold) AND directly URL-addressable (below).
+# 3. The Datasikkerhed wizard has 5 steps (Oversigt · Dataindsamling og sikkerhed ·
+#    Datatyper · Dataforbrug og -behandling · Forhåndsvisning). The step tabs are
+#    NOT clickable-to-jump — you advance with the "Næste" button.
+# 4. CRITICAL: a TEXT locator for "Næste" resolves to a non-functional node (click
+#    lands but the wizard does not advance). A ROLE=button locator hits the real
+#    button and advances. This is the exact case layered self-heal exists for.
+# 5. The page is a heavy SPA — ~3 min cold load. Pacing gives the SPA time to settle
+#    between steps.
 #
-# ⚠️ Locators er BEST-GUESS accessible names (Play Console = React/Material, ingen
-# stabile data-testid) → self-heal via role/text/label ER strategien. Valider +
-# tighten mod den RIGTIGE oversigt (F001.6 AC1). `resolved_via` viser hvilket lag
-# der holdt; alt under det deklarerede top-lag = degraded → schemaet trænger nøgle.
+# ── FACIT confirmed live (all ✅ 2026-07-16) ────────────────────────────────────
+#   Præcis lokation (Precise) declared · Omtrentlig (Approximate) NOT · Valgfrit
+#   (Optional) · Appfunktionalitet (App functionality) · "Der deles ikke data med
+#   tredjeparter" (Shared:No) · collected (not ephemeral-only) · no background loc.
 #
-# Kør (når en authed Google Play-session findes):
+# Run (authed Play Console session captured via cardmem /lens/capture-session):
 #   bun run src/run.ts schemas/google-play.data-safety.location.yaml --daemon \
-#     --state gp-session.json \
-#     --base-url "https://play.google.com/console/u/0/developers/4851438727803482747/app/4974482900370708926/app-content"
-# (Data safety: venstremenu Policy → App content → Data safety → Manage.)
+#     --state /Users/cb/.lens/state/gp-session.json \
+#     --base-url "https://play.google.com/console/u/0/developers/4851438727803482747/app/4974482900370708926/app-content/data-privacy-security"
 form: google-play/data-safety-location
 mutates: false
+pacing: { min_ms: 12000, max_ms: 12000 }
 steps:
   - id: verify-location-declaration
     fields:
-      # Bevis på at vi er på Data-safety-oversigten.
-      - name: data-safety-heading
-        action: expectVisible
-        locator: { role: heading, text: "Data safety" }
-      # Location-datatypen skal fremgå som deklareret.
-      - name: location-section-present
-        action: expectVisible
-        locator: { text: "Location" }
-      # Facit: PRÆCIS lokation (ikke kun omtrentlig) er erklæret.
+      # Advance the wizard Oversigt → … → Forhåndsvisning via ROLE-based "Næste"
+      # (text "Næste" hits a non-functional node — role=button is required).
+      - name: next-to-dataindsamling
+        action: click
+        locator: { role: button, name: "Næste" }
+      - name: next-to-datatyper
+        action: click
+        locator: { role: button, name: "Næste" }
+      - name: next-to-dataforbrug
+        action: click
+        locator: { role: button, name: "Næste" }
+      - name: next-to-forhaandsvisning
+        action: click
+        locator: { role: button, name: "Næste" }
+      # Expand the preview so every data type's purpose/optional detail renders.
+      - name: expand-all-preview
+        action: click
+        locator: { role: button, name: "Udvid alle" }
+      # Assert the location declaration matches FDS facit (all read-only):
       - name: precise-location-declared
         action: expectVisible
-        locator: { text: "Precise location" }
-      # Facit: formålet er App functionality.
+        locator: { text: "Præcis lokation" }
       - name: purpose-app-functionality
         action: expectVisible
-        locator: { text: "App functionality" }
+        locator: { text: "Appfunktionalitet" }
+      - name: location-optional
+        action: expectVisible
+        locator: { text: "Valgfrit" }
+      - name: not-shared-with-third-parties
+        action: expectVisible
+        locator: { text: "Der deles ikke data med tredjeparter" }

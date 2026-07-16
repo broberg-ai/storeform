@@ -1,36 +1,30 @@
-# DRAFT — Google Play Console "Developer verification" (TASK 2, net.fdsport).
+# Google Play Console "Android-udviklerverificering" (Developer verification) VERIFY.
+# net.fdsport (FD Sport), read-only. VERIFIED LIVE 2026-07-16 against the real form.
 #
-# READ-ONLY. mutates:false — denne opskrift ÆNDRER intet. Den bekræfter blot at
-# net.fdsport (app-id 4974482900370708926) fremgår som registreret/verificeret
-# under kontoens Developer-Verification-side. Ingen fill, intet klik på noget der
-# gemmer. Dette er den ideelle FØRSTE rigtige Google-kørsel (nul risiko) — jf.
-# den sikre sekvens aftalt med fds (#17662/#17665).
+# READ-ONLY (mutates:false): asserts on the account home that all apps (incl.
+# net.fdsport) are registered for Android developer verification. Changes nothing.
+# This is the zero-risk check we ran FIRST.
 #
-# ⚠️ Locators er BEST-GUESS accessible names — Play Console er React/Material uden
-# stabile data-testid, så self-heal via role/text ER strategien. Valider + tighten
-# mod den RIGTIGE side (F001.6 AC1) med Christians authede session + den lokale
-# daemon. `resolved_via` i rapporten viser hvilket lag der holdt.
+# ── LIVE FINDINGS ───────────────────────────────────────────────────────────────
+# The Console renders in DANISH for this account. The account home shows a banner:
+#   "Alle dine apps er blevet registreret for at opfylde kravene til
+#    Android-udviklerverificering."
+# and net.fdsport's own app dashboard shows a green verified check next to the
+# package name. Asserting the (Danish) banner text is the stable read-only signal.
+# (The banner has a "Luk" dismiss button — if dismissed, re-check via the
+# "Android-udviklerverificering" sidebar page instead.)
 #
-# Kør (når en authed Google Play-session findes):
+# Run (authed Play Console session via cardmem /lens/capture-session):
 #   bun run src/run.ts schemas/google-play.developer-verification.yaml --daemon \
-#     --state gp-session.json \
+#     --state /Users/cb/.lens/state/gp-session.json \
 #     --base-url "https://play.google.com/console/u/0/developers/4851438727803482747"
-# (Verifikations-siden ligger på konto-niveau; navigér på label — nyere side.)
 form: google-play/developer-verification
 mutates: false
+pacing: { min_ms: 12000, max_ms: 12000 }
 steps:
   - id: verify-registration
     fields:
-      # Bevis på at vi er landet på verifikations-siden (heading-laget først).
-      - name: verification-heading
+      # Danish registration banner on the account home = all apps registered.
+      - name: apps-registered-banner
         action: expectVisible
-        locator: { role: heading, text: "Developer verification" }
-      # Kernen: pakke-navnet net.fdsport skal fremgå = appen er registreret.
-      - name: fdsport-package-listed
-        action: expectVisible
-        locator: { text: "net.fdsport" }
-      # Best-guess status-markør. Rammer den ikke, rapporterer read-only-kørslen
-      # det (graceful) — så ved vi status ikke er "Verified" og eskalerer manuelt.
-      - name: verified-status-present
-        action: expectVisible
-        locator: { role: status, text: "Verified" }
+        locator: { text: "registreret for at opfylde kravene til Android-udviklerverificering" }
