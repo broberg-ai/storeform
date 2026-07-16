@@ -8,7 +8,7 @@
 # Sikker sekvens aftalt med fds (#17662/#17665): verify → rapportér → kun hvis
 # noget mangler, fill men STOP før "Save". Auto-save er F002.
 #
-# FDS' facit (kilde: deres F16-cheatsheet, net.fdsport, GPS tilføjet v1.6.0):
+# FDS' facit (kilde: deres interne data-safety-cheatsheet, net.fdsport, GPS tilføjet v1.6.0):
 #   Location · Collected: Yes · Data type: Precise location ·
 #   Shared w/ third parties: No · Processed ephemerally only: No ·
 #   Required or optional: Optional · Purpose: App functionality
