@@ -1,0 +1,54 @@
+# DRAFT — Google Play Console "Data safety" location declaration (TASK 1, net.fdsport).
+#
+# READ-ONLY VERIFY FØRST. mutates:false — denne opskrift ÆNDRER intet. Den
+# navigerer til Data-safety-oversigten og bekræfter at lokations-erklæringen
+# matcher FDS' facit. Den FILL-variant (udfyld-men-STOP-før-Save) er bevidst IKKE
+# bygget blindt: Data-safety er en fler-trins wizard, så fill-trinnene finaliseres
+# mod den RIGTIGE form med Christians login (aldrig gæt på en live prod-app).
+# Sikker sekvens aftalt med fds (#17662/#17665): verify → rapportér → kun hvis
+# noget mangler, fill men STOP før "Save". Auto-save er F002.
+#
+# FDS' facit (kilde: deres F16-cheatsheet, net.fdsport, GPS tilføjet v1.6.0):
+#   Location · Collected: Yes · Data type: Precise location ·
+#   Shared w/ third parties: No · Processed ephemerally only: No ·
+#   Required or optional: Optional · Purpose: App functionality
+#   VIGTIGT: KUN foreground-lokation (ingen ACCESS_BACKGROUND_LOCATION) →
+#   Plays separate "background location"-deklaration skal IKKE udfyldes.
+#   Fri-tekst (hvis krævet, engelsk):
+#     "FD Sport collects the user's precise location only at the moment they file
+#      an injury report, and only if they opt in. The coordinates are stored on
+#      that report so the treating physiotherapist can see where the injury
+#      occurred. Location is never collected in the background, never used for
+#      tracking or advertising, and the report works fully without it."
+#
+# ⚠️ Locators er BEST-GUESS accessible names (Play Console = React/Material, ingen
+# stabile data-testid) → self-heal via role/text/label ER strategien. Valider +
+# tighten mod den RIGTIGE oversigt (F001.6 AC1). `resolved_via` viser hvilket lag
+# der holdt; alt under det deklarerede top-lag = degraded → schemaet trænger nøgle.
+#
+# Kør (når en authed Google Play-session findes):
+#   bun run src/run.ts schemas/google-play.data-safety.location.yaml --daemon \
+#     --state gp-session.json \
+#     --base-url "https://play.google.com/console/u/0/developers/4851438727803482747/app/4974482900370708926/app-content"
+# (Data safety: venstremenu Policy → App content → Data safety → Manage.)
+form: google-play/data-safety-location
+mutates: false
+steps:
+  - id: verify-location-declaration
+    fields:
+      # Bevis på at vi er på Data-safety-oversigten.
+      - name: data-safety-heading
+        action: expectVisible
+        locator: { role: heading, text: "Data safety" }
+      # Location-datatypen skal fremgå som deklareret.
+      - name: location-section-present
+        action: expectVisible
+        locator: { text: "Location" }
+      # Facit: PRÆCIS lokation (ikke kun omtrentlig) er erklæret.
+      - name: precise-location-declared
+        action: expectVisible
+        locator: { text: "Precise location" }
+      # Facit: formålet er App functionality.
+      - name: purpose-app-functionality
+        action: expectVisible
+        locator: { text: "App functionality" }
