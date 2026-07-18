@@ -1,0 +1,380 @@
+# App Store Connect — App Privacy ("privacy nutrition label") questionnaire.
+#
+# STATUS: LIVE-VALIDATED against the real ASC wizard (FD Sundhed, Apple ID
+# 6792116588) on 2026-07-17 via the LOCAL cardmem daemon (F112). Every locator
+# below is the real one discovered by driving the form, not a best-guess.
+#
+# WHAT IS REUSABLE (the flow) vs. WHAT IS PER-APP (the declaration):
+#   - The steps/locators below ARE the flow — reuse verbatim for ANY app's
+#     App Privacy form. Apple's wizard is identical across apps.
+#   - The PER-APP declaration is: (a) --base-url (the app's privacy URL),
+#     (b) --data privacy_policy_url=..., and (c) the SET of data-type blocks in
+#     `select-data-types` + the per-type `configure-*` steps (which types, and
+#     each type's linked=Yes/No). Swap those to declare a different app.
+#     A data type's purpose here is always "App Functionality" and tracking is
+#     "No" — FD Sundhed collects nothing for ads/analytics/tracking.
+#
+# THE 9 DATA TYPES DECLARED FOR FD SUNDHED (purpose=App Functionality, tracking=No):
+#   Name, Email Address, Phone Number, Health, Photos or Videos, User ID,
+#   Device ID  -> LINKED to identity
+#   Crash Data -> NOT linked (Diagnostics, no user-id on events)
+#   Other Data Types (Danish CPR, AES-256-GCM, shared only w/ booking system) -> LINKED
+#
+# v1 STOPS BEFORE "Publish": this schema fills + saves the declaration as a
+# DRAFT and asserts the Publish button is present. It NEVER clicks Publish — the
+# public, version-releasing step is owner-gated (F002). Apple releases the saved
+# label with the app's next version submission.
+#
+# ENGINE NOTE: the per-type sub-flow (purpose -> linked -> 2 tracking-info
+# interstitials -> tracking) is a DYNAMIC branch repeated per selected type.
+# Full one-shot engine replay needs Lens branching support (F001.10 G3 gap);
+# until then the daemon drives it step-wise (as this run did). The blocks below
+# are the faithful, expanded linear record of that flow.
+#
+# Run (local daemon, authed ASC session on the same Mac/IP as login):
+#   bun run src/run.ts schemas/app-store-connect.app-privacy.yaml --daemon \
+#     --base-url "https://appstoreconnect.apple.com/apps/6792116588/distribution/privacy" \
+#     --state /Users/cb/.lens/state/asc-session.json \
+#     --data privacy_policy_url="https://sundhed.fdaalborg.dk/privacy"
+form: app-store-connect/app-privacy
+mutates: true
+# Human-like pacing between fields (F001.9) — App Privacy is a long wizard.
+pacing: { min_ms: 350, max_ms: 900 }
+steps:
+  - id: privacy-policy-url
+    waitFor: 1500
+    fields:
+      - name: open-privacy-policy-editor
+        action: click
+        locator: { role: "button", text: "Edit", nth: 0 }
+      - name: privacy-policy-url
+        action: fill
+        locator: { css: "input[name=privacyPolicyUrl]" }
+        value: "{{ privacy_policy_url }}"
+      - name: save-privacy-policy
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: data-collection-start
+    waitFor: 1500
+    fields:
+      - name: get-started
+        action: click
+        locator: { role: "button", text: "Get Started" }
+      - name: collect-data-yes
+        action: click
+        locator: { role: "radio", text: "Yes, we collect data" }
+      - name: collect-next
+        action: click
+        locator: { role: "button", text: "Next" }
+  - id: select-data-types
+    waitFor: 1200
+    fields:
+      - name: type-name
+        action: click
+        locator: { role: "checkbox", text: "Name", exact: true }
+      - name: type-email-address
+        action: click
+        locator: { role: "checkbox", text: "Email Address", exact: true }
+      - name: type-phone-number
+        action: click
+        locator: { role: "checkbox", text: "Phone Number", exact: true }
+      - name: type-health
+        action: click
+        locator: { role: "checkbox", text: "Health", exact: true }
+      - name: type-photos-or-videos
+        action: click
+        locator: { role: "checkbox", text: "Photos or Videos", exact: true }
+      - name: type-user-id
+        action: click
+        locator: { role: "checkbox", text: "User ID", exact: true }
+      - name: type-device-id
+        action: click
+        locator: { role: "checkbox", text: "Device ID", exact: true }
+      - name: type-crash-data
+        action: click
+        locator: { role: "checkbox", text: "Crash Data", exact: true }
+      - name: type-other-data-types
+        action: click
+        locator: { role: "checkbox", text: "Other Data Types", exact: true }
+      - name: save-types
+        action: click
+        locator: { role: "button", text: "Save" }
+      - name: ack-additional-setup
+        action: click
+        locator: { role: "button", text: "OK" }
+  - id: configure-name
+    waitFor: 1200
+    fields:
+      - name: name-open
+        action: click
+        locator: { text: "Set Up Name" }
+      - name: name-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: name-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: name-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: name-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: name-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: name-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: name-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: name-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-email-address
+    waitFor: 1200
+    fields:
+      - name: email-address-open
+        action: click
+        locator: { text: "Set Up Email Address" }
+      - name: email-address-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: email-address-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: email-address-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: email-address-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: email-address-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: email-address-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: email-address-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: email-address-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-phone-number
+    waitFor: 1200
+    fields:
+      - name: phone-number-open
+        action: click
+        locator: { text: "Set Up Phone Number" }
+      - name: phone-number-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: phone-number-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: phone-number-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: phone-number-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: phone-number-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: phone-number-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: phone-number-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: phone-number-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-health
+    waitFor: 1200
+    fields:
+      - name: health-open
+        action: click
+        locator: { text: "Set Up Health" }
+      - name: health-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: health-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: health-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: health-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: health-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: health-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: health-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: health-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-photos-or-videos
+    waitFor: 1200
+    fields:
+      - name: photos-or-videos-open
+        action: click
+        locator: { text: "Set Up Photos or Videos" }
+      - name: photos-or-videos-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: photos-or-videos-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: photos-or-videos-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: photos-or-videos-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: photos-or-videos-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: photos-or-videos-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: photos-or-videos-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: photos-or-videos-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-user-id
+    waitFor: 1200
+    fields:
+      - name: user-id-open
+        action: click
+        locator: { text: "Set Up User ID" }
+      - name: user-id-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: user-id-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: user-id-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: user-id-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: user-id-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: user-id-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: user-id-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: user-id-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-device-id
+    waitFor: 1200
+    fields:
+      - name: device-id-open
+        action: click
+        locator: { text: "Set Up Device ID" }
+      - name: device-id-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: device-id-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: device-id-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: device-id-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: device-id-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: device-id-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: device-id-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: device-id-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-crash-data
+    waitFor: 1200
+    fields:
+      - name: crash-data-open
+        action: click
+        locator: { text: "Set Up Crash Data" }
+      - name: crash-data-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: crash-data-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: crash-data-linked-no
+        action: click
+        locator: { role: "radio", text: "No, " }
+      - name: crash-data-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: crash-data-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: crash-data-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: crash-data-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: crash-data-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: configure-other-data-types
+    waitFor: 1200
+    fields:
+      - name: other-data-types-open
+        action: click
+        locator: { text: "Set Up Other Data Types" }
+      - name: other-data-types-purpose-app-functionality
+        action: click
+        locator: { role: "checkbox", text: "App Functionality" }
+      - name: other-data-types-purpose-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: other-data-types-linked-yes
+        action: click
+        locator: { role: "radio", text: "Yes, " }
+      - name: other-data-types-linked-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: other-data-types-tracking-info-1-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: other-data-types-tracking-info-2-next
+        action: click
+        locator: { role: "button", text: "Next" }
+      - name: other-data-types-tracking-no
+        action: click
+        locator: { role: "radio", text: "No, we do not use" }
+      - name: other-data-types-save
+        action: click
+        locator: { role: "button", text: "Save" }
+  - id: assert-ready-not-published
+    waitFor: 1500
+    fields:
+      - name: publish-button-present
+        action: expectVisible
+        locator: { role: "button", text: "Publish" }
