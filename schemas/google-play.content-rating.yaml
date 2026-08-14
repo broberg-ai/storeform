@@ -1,0 +1,133 @@
+# Google Play Console — Content rating (IARC) questionnaire.
+#
+# STATUS: LIVE-VALIDATED against the real Play Console wizard (FD Sundhed,
+# App-ID 4973100668024643766, dk.fdsundhed) on 2026-07-18 via the LOCAL cardmem
+# daemon (F112). Every locator below is the real one discovered by driving the
+# form, not a best-guess. Completing it dropped the App-content "Kræver handling"
+# count and generated the official IARC rating.
+#
+# ── HARD DEPENDENCY: SAVE BUTTONS NEED KEYBOARD-ENTER, NOT A POINTER-CLICK ──
+# Play Console is an Angular/MDC SPA. A pointer-click (Playwright page.click) on
+# the "Gem" (Save) / "Næste" (Next) buttons reports success but DOES NOT fire the
+# Angular save handler — the form silently stays "I gang" (in progress) and never
+# finalizes. The working activation is: focus the button + press Enter. This is
+# the SAME class of quirk as ASC's React onClick (trusted keyboard over simulated
+# click). It is a RUNNER/Lens responsibility, not a schema one: the schema says
+# `action: click` (activate this control); the daemon must activate Gem/Næste via
+# keyboard-Enter. Filed as cardmem idea 019f74bc (tag `lens-gap`, keyboard-enter).
+# Until Lens ships that, drive this flow step-wise through the daemon (as the live
+# run did). Radios/checkboxes select fine with a normal click — only the SAVE
+# buttons need the keyboard path.
+#
+# ── WHAT IS REUSABLE (the flow) vs. WHAT IS PER-APP (the answers) ──
+#   - The steps/locators below ARE the flow — reuse verbatim for ANY app's
+#     Play content-rating questionnaire. The IARC wizard is identical across apps.
+#   - PER-APP is: (a) --base-url (the app's content-rating-overview URL),
+#     (b) --data contact_email=... (goes to IARC/rating authorities), (c) the
+#     CATEGORY (`category` step) and (d) the SET of Ja/Nej answers (`questionnaire`
+#     step). For a GAME pick "Spil"; for a chat/social app pick "Socialt indhold
+#     eller kommunikation" — both branch to a DIFFERENT question set than the 9
+#     below. FD Sundhed is a health app => category "Alle andre apptyper" and all
+#     9 content questions = "Nej" (no violence/sex/language/drugs/gambling, no
+#     UGC, no location-sharing, no digital purchases, no crypto, not a browser,
+#     not primarily news/education).
+#
+# ── ENTRY VARIANT ── For a FRESH app the overview shows "Start spørgeskema"
+# (used below). For an app with an in-progress/prior questionnaire it shows
+# "Rediger" instead (resume restarts at the Kategori step; answers do NOT persist
+# across resume, so re-answer). Swap the `start-questionnaire` locator text if so.
+#
+# ── COMPLETION, NOT PUBLISH ── Finalizing the questionnaire ("Gem" on the
+# Oversigt step) completes the DECLARATION and generates the rating; it does NOT
+# submit or publish the app. The public app submit stays owner-gated (F002).
+#
+# Run (local daemon, authed Play session on the same Mac/IP as login):
+#   bun run src/run.ts schemas/google-play.content-rating.yaml --daemon \
+#     --base-url "https://play.google.com/console/u/0/developers/4851438727803482747/app/4973100668024643766/app-content/content-rating-overview" \
+#     --state /Users/cb/.lens/state/gp-session.json \
+#     --data contact_email="cb@broberg.ai"
+form: google-play/content-rating
+mutates: true
+# Human-like pacing between fields (F001.9). Play Console is a heavy SPA (cold
+# load ~3 min); generous pacing also lets the "Tjekker/Sender…" spinners settle.
+pacing: { min_ms: 400, max_ms: 1000 }
+steps:
+  # ── From content-rating-overview: open the IARC questionnaire ──
+  - id: start-questionnaire
+    waitFor: 2000
+    fields:
+      - name: start-questionnaire
+        action: click # "Rediger" when resuming a prior draft
+        locator: { role: "button", text: "Start spørgeskema" }
+
+  # ── Trin 1: Kategori (email + app category + IARC terms) ──
+  - id: category
+    waitFor: 1500
+    fields:
+      - name: contact-email
+        action: fill # Playwright fill — a native value-set does NOT bind Angular
+        locator: { css: "input[type=email]" }
+        value: "{{ contact_email }}"
+      - name: category-all-other-app-types
+        action: click # game => "Spil"; social/chat => "Socialt indhold eller kommunikation"
+        locator: { text: "Alle andre apptyper" }
+      - name: accept-iarc-terms
+        action: click # required checkbox ("Du skal acceptere brugsvilkårene…")
+        locator: { role: "checkbox", nth: 0 }
+      - name: category-next
+        action: click # SAVE-CLASS: keyboard-Enter (see header)
+        locator: { role: "button", text: "Næste", exact: true }
+
+  # ── Trin 2: Spørgeskema — 9 content questions, all Nej for a health app ──
+  # The 9 "Nej" options are identical text; nth 0..8 maps to the questions in
+  # DOM order (listed below for auditability). A normal click selects a radio.
+  - id: questionnaire
+    waitFor: 1500
+    fields:
+      - name: q1-classification-content-in-package-nej # sex/violence/language shipped in the app package?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 0 }
+      - name: q2-user-communication-ugc-nej # users communicate / exchange content?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 1 }
+      - name: q3-variable-openable-content-nej # streamed/AI-generated/news content openable from the app?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 2 }
+      - name: q4-age-restricted-goods-nej # promotes/sells tobacco, alcohol, weapons, gambling?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 3 }
+      - name: q5-shares-location-with-other-users-nej # shares user's physical location with OTHER users?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 4 }
+      - name: q6-digital-purchases-nej # lets users buy digital goods?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 5 }
+      - name: q7-cash-rewards-crypto-nft-nej # cash rewards / gift cards / crypto / NFTs?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 6 }
+      - name: q8-web-browser-or-search-engine-nej # is the app a browser / search engine?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 7 }
+      - name: q9-primarily-news-or-education-nej # primarily a news or educational product?
+        action: click
+        locator: { text: "Nej", exact: true, nth: 8 }
+      # SAVE the answers. "Næste" stays DISABLED until the answers are saved, so
+      # Gem must fire first (keyboard-Enter), then Næste enables.
+      - name: save-answers
+        action: click # SAVE-CLASS: keyboard-Enter
+        locator: { role: "button", text: "Gem", exact: true }
+      - name: to-oversigt
+        action: click # SAVE-CLASS: keyboard-Enter — advances to the Oversigt step
+        locator: { role: "button", text: "Næste", exact: true }
+
+  # ── Trin 3: Oversigt — IARC computes the rating ("Sender…"), then finalize ──
+  - id: finalize
+    waitFor: 4000 # let the "Sender…" IARC computation settle before finalizing
+    fields:
+      - name: rating-summary-present
+        action: expectText # proves we reached the computed-rating summary
+        locator: { text: "Dine klassificeringer" }
+        value: "Dine klassificeringer"
+      - name: finalize-declaration
+        action: click # SAVE-CLASS: keyboard-Enter — completes the declaration + rating
+        locator: { role: "button", text: "Gem", exact: true }
